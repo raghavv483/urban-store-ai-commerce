@@ -16,7 +16,7 @@ describe("database schema", () => {
   it("creates every table from spec section 7", async () => {
     const rows = await prisma.$queryRaw<Array<{ table_name: string }>>`
       SELECT table_name FROM information_schema.tables
-      WHERE table_schema = 'public'
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
     `;
     const tables = rows.map((r) => r.table_name);
     for (const expected of [
@@ -35,6 +35,7 @@ describe("database schema", () => {
       FROM pg_attribute a
       WHERE a.attrelid = 'knowledge_chunks'::regclass AND a.attname = 'embedding'
     `;
+    expect(rows).toHaveLength(1);
     expect(rows[0].format_type).toBe("vector(384)");
   });
 
@@ -43,6 +44,7 @@ describe("database schema", () => {
       SELECT data_type FROM information_schema.columns
       WHERE table_name = 'products' AND column_name = 'price_in_paise'
     `;
+    expect(rows).toHaveLength(1);
     expect(rows[0].data_type).toBe("integer");
   });
 
@@ -53,5 +55,19 @@ describe("database schema", () => {
         AND indexdef LIKE '%merchant_id%' AND indexdef LIKE '%slug%'
     `;
     expect(rows.length).toBeGreaterThan(0);
+  });
+
+  it("keeps the ivfflat index on knowledge_chunks.embedding", async () => {
+    // Regression guard for the one object in this schema with a verified
+    // mechanism for disappearing silently: the ivfflat index has no
+    // representation in db/schema.prisma (Prisma cannot express ivfflat
+    // indexes), so any future `prisma migrate dev` will propose dropping it
+    // as an innocuous-looking generated step. See db/migrations/README.md.
+    const rows = await prisma.$queryRaw<Array<{ indexdef: string }>>`
+      SELECT indexdef FROM pg_indexes
+      WHERE indexname = 'knowledge_chunks_embedding_idx'
+    `;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].indexdef).toMatch(/ivfflat/);
   });
 });
