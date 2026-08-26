@@ -1,0 +1,323 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+enum UserRole {
+  customer
+  merchant_admin
+}
+
+enum CartStatus {
+  active
+  checked_out
+  abandoned
+}
+
+enum CartEventType {
+  checkout_started
+  payment_failed
+  abandoned
+  recovered
+}
+
+enum OrderStatus {
+  created
+  pending
+  paid
+  failed
+  cancelled
+}
+
+enum OrderSource {
+  human
+  ai_buyer
+}
+
+enum PaymentStatus {
+  created
+  authorized
+  captured
+  failed
+  refunded
+}
+
+enum CampaignStatus {
+  proposed
+  approved
+  active
+  rejected
+}
+
+enum AgentRunStatus {
+  running
+  succeeded
+  failed
+}
+
+model Merchant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users            User[]
+  products         Product[]
+  productRelations ProductRelation[]
+  carts            Cart[]
+  orders           Order[]
+  campaigns        Campaign[]
+  agentRuns        AgentRun[]
+  knowledgeChunks  KnowledgeChunk[]
+
+  @@map("merchants")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  clerkId    String   @unique @map("clerk_id")
+  email      String   @unique
+  role       UserRole @default(customer)
+  merchantId String   @map("merchant_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  carts    Cart[]
+  orders   Order[]
+
+  @@index([merchantId])
+  @@map("users")
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  merchantId     String   @map("merchant_id")
+  name           String
+  slug           String
+  category       String
+  priceInPaise   Int      @map("price_in_paise")
+  currency       String   @default("INR")
+  stock          Int      @default(0)
+  sku            String
+  specifications Json     @default("{}")
+  imageUrl       String?  @map("image_url")
+  description    String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  merchant    Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  relatedFrom ProductRelation[] @relation("RelationSource")
+  relatedTo   ProductRelation[] @relation("RelationTarget")
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@unique([merchantId, slug])
+  @@unique([merchantId, sku])
+  @@index([merchantId, category])
+  @@index([merchantId, active])
+  @@map("products")
+}
+
+model ProductRelation {
+  id               String   @id @default(cuid())
+  merchantId       String   @map("merchant_id")
+  productId        String   @map("product_id")
+  relatedProductId String   @map("related_product_id")
+  relationType     String   @map("relation_type")
+  score            Float    @default(1.0)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  product        Product  @relation("RelationSource", fields: [productId], references: [id], onDelete: Cascade)
+  relatedProduct Product  @relation("RelationTarget", fields: [relatedProductId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, relatedProductId, relationType])
+  @@index([merchantId, productId])
+  @@map("product_relations")
+}
+
+model Cart {
+  id           String     @id @default(cuid())
+  merchantId   String     @map("merchant_id")
+  customerId   String?    @map("customer_id")
+  sessionId    String?    @map("session_id")
+  status       CartStatus @default(active)
+  totalInPaise Int        @default(0) @map("total_in_paise")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  merchant Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer User?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    CartItem[]
+  events   CartEvent[]
+  orders   Order[]
+
+  @@index([merchantId, status])
+  @@index([merchantId, customerId])
+  @@map("carts")
+}
+
+model CartItem {
+  id               String   @id @default(cuid())
+  cartId           String   @map("cart_id")
+  productId        String   @map("product_id")
+  quantity         Int      @default(1)
+  priceAtTimePaise Int      @map("price_at_time_paise")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+model CartEvent {
+  id        String        @id @default(cuid())
+  cartId    String        @map("cart_id")
+  eventType CartEventType @map("event_type")
+  metadata  Json          @default("{}")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@index([cartId, eventType])
+  @@index([eventType, createdAt])
+  @@map("cart_events")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  merchantId      String      @map("merchant_id")
+  customerId      String?     @map("customer_id")
+  cartId          String?     @map("cart_id")
+  razorpayOrderId String?     @unique @map("razorpay_order_id")
+  status          OrderStatus @default(created)
+  source          OrderSource @default(human)
+  subtotalInPaise Int         @map("subtotal_in_paise")
+  totalInPaise    Int         @map("total_in_paise")
+  currency        String      @default("INR")
+  idempotencyKey  String?     @unique @map("idempotency_key")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  merchant Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer User?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  cart     Cart?       @relation(fields: [cartId], references: [id], onDelete: SetNull)
+  items    OrderItem[]
+  payments Payment[]
+
+  @@index([merchantId, status])
+  @@index([merchantId, source])
+  @@index([merchantId, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String @id @default(cuid())
+  orderId          String @map("order_id")
+  productId        String @map("product_id")
+  quantity         Int
+  unitPriceInPaise Int    @map("unit_price_in_paise")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String        @map("order_id")
+  razorpayPaymentId String?       @unique @map("razorpay_payment_id")
+  status            PaymentStatus @default(created)
+  method            String?
+  amountInPaise     Int           @map("amount_in_paise")
+  errorCode         String?       @map("error_code")
+  errorDescription  String?       @map("error_description")
+  capturedAt        DateTime?     @map("captured_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model Campaign {
+  id               String         @id @default(cuid())
+  merchantId       String         @map("merchant_id")
+  type             String
+  name             String
+  status           CampaignStatus @default(proposed)
+  targetDefinition Json           @default("{}") @map("target_definition")
+  content          String
+  createdByAgent   String?        @map("created_by_agent")
+  approvedBy       String?        @map("approved_by")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, status])
+  @@map("campaigns")
+}
+
+model AgentRun {
+  id            String         @id @default(cuid())
+  merchantId    String         @map("merchant_id")
+  sessionId     String?        @map("session_id")
+  agentName     String         @map("agent_name")
+  trigger       String
+  inputSummary  String         @map("input_summary")
+  outputSummary String?        @map("output_summary")
+  status        AgentRunStatus @default(running)
+  startedAt     DateTime       @default(now()) @map("started_at")
+  completedAt   DateTime?      @map("completed_at")
+
+  merchant Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  actions  AgentAction[]
+
+  @@index([merchantId, startedAt])
+  @@map("agent_runs")
+}
+
+model AgentAction {
+  id               String   @id @default(cuid())
+  agentRunId       String   @map("agent_run_id")
+  actionType       String   @map("action_type")
+  parameters       Json     @default("{}")
+  policyDecision   String?  @map("policy_decision")
+  approvalRequired Boolean  @default(false) @map("approval_required")
+  approvalStatus   String?  @map("approval_status")
+  result           Json     @default("{}")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  agentRun AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+
+  @@index([agentRunId])
+  @@map("agent_actions")
+}
+
+model KnowledgeChunk {
+  id         String                      @id @default(cuid())
+  merchantId String                      @map("merchant_id")
+  docType    String                      @map("doc_type")
+  content    String
+  embedding  Unsupported("vector(384)")?
+  metadata   Json                        @default("{}")
+  createdAt  DateTime                    @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, docType])
+  @@map("knowledge_chunks")
+}
