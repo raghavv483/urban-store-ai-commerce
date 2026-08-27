@@ -98,7 +98,9 @@ export async function seed(): Promise<void> {
   ];
 
   for (const o of priorOrders) {
-    const existing = await prisma.order.findUnique({ where: { idempotencyKey: o.key } });
+    const existing = await prisma.order.findFirst({
+      where: { merchantId: merchant.id, idempotencyKey: o.key },
+    });
     if (existing) continue;
 
     const subtotal = o.items.reduce(

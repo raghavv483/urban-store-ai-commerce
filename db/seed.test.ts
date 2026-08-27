@@ -56,15 +56,29 @@ describe("seed", () => {
   });
 
   it("is idempotent — running twice does not duplicate rows", async () => {
-    await seed();
     const merchant = await prisma.merchant.findUniqueOrThrow({ where: { slug: MERCHANT_SLUG } });
-    const [products, relations, carts] = await Promise.all([
-      prisma.product.count({ where: { merchantId: merchant.id } }),
-      prisma.productRelation.count({ where: { merchantId: merchant.id } }),
-      prisma.cart.count({ where: { merchantId: merchant.id, status: "abandoned" } }),
+    const [ordersBefore, orderItemsBefore, paymentsBefore] = await Promise.all([
+      prisma.order.count({ where: { merchantId: merchant.id } }),
+      prisma.orderItem.count({ where: { order: { merchantId: merchant.id } } }),
+      prisma.payment.count({ where: { order: { merchantId: merchant.id } } }),
     ]);
+
+    await seed();
+
+    const [products, relations, carts, ordersAfter, orderItemsAfter, paymentsAfter] =
+      await Promise.all([
+        prisma.product.count({ where: { merchantId: merchant.id } }),
+        prisma.productRelation.count({ where: { merchantId: merchant.id } }),
+        prisma.cart.count({ where: { merchantId: merchant.id, status: "abandoned" } }),
+        prisma.order.count({ where: { merchantId: merchant.id } }),
+        prisma.orderItem.count({ where: { order: { merchantId: merchant.id } } }),
+        prisma.payment.count({ where: { order: { merchantId: merchant.id } } }),
+      ]);
     expect(products).toBe(SEED_PRODUCTS.length);
     expect(relations).toBe(SEED_RELATIONS.length);
     expect(carts).toBe(3);
+    expect(ordersAfter).toBe(ordersBefore);
+    expect(orderItemsAfter).toBe(orderItemsBefore);
+    expect(paymentsAfter).toBe(paymentsBefore);
   });
 });
