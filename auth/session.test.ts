@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { prisma } from "@/lib/db";
-import { resolveSessionContext } from "./session";
+import { resolveSessionContext, resolveSessionContextSafely } from "./session";
 import { seed } from "@/db/seed";
 import { MERCHANT_SLUG } from "@/db/seed-data";
 import { env } from "@/lib/env";
@@ -69,5 +69,32 @@ describe("resolveSessionContext", () => {
       primaryEmail: null,
     }));
     expect(ctx).toBeNull();
+  });
+});
+
+describe("resolveSessionContextSafely", () => {
+  it("degrades to null and logs instead of propagating when resolveSessionContext throws", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failure = new Error("simulated syncUser failure (e.g. missing merchant or P2002)");
+
+    const ctx = await resolveSessionContextSafely("test_clerk_boom", async () => {
+      throw failure;
+    });
+
+    expect(ctx).toBeNull();
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(consoleError.mock.calls[0]).toContain(failure);
+
+    consoleError.mockRestore();
+  });
+
+  it("behaves exactly like resolveSessionContext on the happy path", async () => {
+    const ctx = await resolveSessionContextSafely(CUSTOMER_CLERK_ID, async () => ({
+      id: CUSTOMER_CLERK_ID,
+      primaryEmail: "shopper@example.com",
+    }));
+
+    expect(ctx).not.toBeNull();
+    expect(ctx!.role).toBe("customer");
   });
 });

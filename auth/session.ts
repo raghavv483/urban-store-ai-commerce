@@ -37,6 +37,33 @@ export async function resolveSessionContext(
 }
 
 /**
+ * Wraps `resolveSessionContext`, catching any throw (missing seeded
+ * merchant, a Prisma P2002 email collision in `syncUser`) and degrading to
+ * a signed-out session instead of propagating.
+ *
+ * `<SiteHeader />` calls the session helpers from the root layout on every
+ * route, so letting either throw here would take down every page for the
+ * affected user instead of just the one feature that needed the session.
+ * Logs the failure for an operator to diagnose, then returns null so the
+ * page still renders in its signed-out state.
+ *
+ * Kept separate from `resolveSessionContext` (which must stay pure and
+ * throw, per its own tests) so this degrade-to-null behavior has its own
+ * directly testable seam that doesn't require a real Clerk request context.
+ */
+export async function resolveSessionContextSafely(
+  clerkId: string | null,
+  loadClerkUser: () => Promise<ClerkUserLike | null>,
+): Promise<SessionContext | null> {
+  try {
+    return await resolveSessionContext(clerkId, loadClerkUser);
+  } catch (error) {
+    console.error("getSessionContext: failed to resolve session, degrading to signed-out", error);
+    return null;
+  }
+}
+
+/**
  * Next.js-bound wrapper. Use this from server components and route handlers.
  * Wrapped in `cache` so repeated calls within a single render pass (e.g. the
  * header plus the page it wraps) hit the database once instead of re-running
@@ -44,7 +71,7 @@ export async function resolveSessionContext(
  */
 export const getSessionContext = cache(async (): Promise<SessionContext | null> => {
   const { userId } = await auth();
-  return resolveSessionContext(userId, async () => {
+  return resolveSessionContextSafely(userId, async () => {
     const user = await currentUser();
     if (!user) return null;
     return {
