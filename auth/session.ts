@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import type { UserRole } from "@prisma/client";
 import { syncUser, type ClerkUserLike } from "./sync";
@@ -35,8 +36,13 @@ export async function resolveSessionContext(
   };
 }
 
-/** Next.js-bound wrapper. Use this from server components and route handlers. */
-export async function getSessionContext(): Promise<SessionContext | null> {
+/**
+ * Next.js-bound wrapper. Use this from server components and route handlers.
+ * Wrapped in `cache` so repeated calls within a single render pass (e.g. the
+ * header plus the page it wraps) hit the database once instead of re-running
+ * the merchant lookup and user upsert on every call.
+ */
+export const getSessionContext = cache(async (): Promise<SessionContext | null> => {
   const { userId } = await auth();
   return resolveSessionContext(userId, async () => {
     const user = await currentUser();
@@ -46,7 +52,7 @@ export async function getSessionContext(): Promise<SessionContext | null> {
       primaryEmail: user.primaryEmailAddress?.emailAddress ?? null,
     };
   });
-}
+});
 
 export class UnauthorizedError extends Error {
   constructor(message = "You must be signed in to do that.") {

@@ -47,7 +47,7 @@ export default async function ProductPage({
             {specs.map(([key, value]) => (
               <div key={key} className="flex justify-between px-4 py-3 text-sm">
                 <dt className="capitalize text-muted-foreground">{key}</dt>
-                <dd className="font-medium">{value}</dd>
+                <dd className="font-medium">{String(value)}</dd>
               </div>
             ))}
           </dl>
