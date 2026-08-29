@@ -104,4 +104,19 @@ describe("getProductBySlug", () => {
   it("returns null for an unknown slug rather than throwing", async () => {
     expect(await getProductBySlug(merchantId, "does-not-exist")).toBeNull();
   });
+
+  it("returns null for a delisted (inactive) product", async () => {
+    try {
+      await prisma.product.update({
+        where: { merchantId_slug: { merchantId, slug: "wireless-mouse" } },
+        data: { active: false },
+      });
+      expect(await getProductBySlug(merchantId, "wireless-mouse")).toBeNull();
+    } finally {
+      await prisma.product.update({
+        where: { merchantId_slug: { merchantId, slug: "wireless-mouse" } },
+        data: { active: true },
+      });
+    }
+  });
 });

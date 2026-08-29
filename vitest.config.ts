@@ -17,5 +17,14 @@ export default defineConfig({
     hookTimeout: 30_000,
     include: ["**/*.test.ts", "**/*.test.tsx"],
     exclude: ["node_modules", ".next"],
+    // Several test files (`db/seed.test.ts`, `auth/session.test.ts`,
+    // `db/queries/products.test.ts`) are integration tests that share one
+    // live database and call `seed()` in `beforeAll`. Running test files in
+    // parallel (Vitest's default) lets one file's `seed()` re-write rows
+    // that another file is mid-mutation on (e.g. toggling a product's
+    // `active` flag), which is a real race, not a hypothetical one. Force
+    // everything to run sequentially instead.
+    fileParallelism: false,
+    sequence: { concurrent: false },
   },
 });

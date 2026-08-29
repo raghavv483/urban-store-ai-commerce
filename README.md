@@ -22,6 +22,13 @@ The Postgres database needs the `vector` extension:
 Set `MERCHANT_ADMIN_EMAIL` to the address you sign up with — that account
 becomes the merchant admin on first sign-in.
 
+`npm run db:migrate` only **applies** committed migrations (`prisma migrate
+deploy`) — it never generates or resets anything, so it's safe to run against
+the shared database. If you need to **create** a new migration, read
+`db/migrations/README.md` first — this project's database has quirks
+(a hand-written pgvector index, and a documented drift-detection trap) that
+make the naive `prisma migrate dev` workflow unsafe here.
+
 ## Commands
 
 | Command | What it does |
@@ -30,7 +37,7 @@ becomes the merchant admin on first sign-in.
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm test` | Vitest (unit + DB integration) |
-| `npm run db:migrate` | Apply Prisma migrations |
+| `npm run db:migrate` | Apply committed Prisma migrations (`migrate deploy`, safe) |
 | `npm run db:seed` | Seed Urban Store (idempotent) |
 | `npm run db:studio` | Browse the database |
 

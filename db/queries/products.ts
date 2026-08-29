@@ -52,8 +52,8 @@ export async function getProductBySlug(
   merchantId: string,
   slug: string,
 ): Promise<ProductDetail | null> {
-  const product = await prisma.product.findUnique({
-    where: { merchantId_slug: { merchantId, slug } },
+  const product = await prisma.product.findFirst({
+    where: { merchantId, slug, active: true },
     select: { ...LIST_FIELDS, sku: true, description: true, specifications: true },
   });
 

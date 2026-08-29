@@ -23,4 +23,7 @@ function assertIntegerPaise(paise: number): void {
   if (!Number.isInteger(paise)) {
     throw new Error(`Expected an integer paise amount, received ${paise}`);
   }
+  if (paise < 0) {
+    throw new Error(`Expected a non-negative paise amount, received ${paise}`);
+  }
 }

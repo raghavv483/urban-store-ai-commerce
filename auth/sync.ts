@@ -10,8 +10,13 @@ export type ClerkUserLike = {
   primaryEmail: string | null;
 };
 
+/** Trims and lowercases an email so storage and comparison always agree. */
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 function roleForEmail(email: string): UserRole {
-  return email.toLowerCase() === env.MERCHANT_ADMIN_EMAIL.toLowerCase()
+  return normalizeEmail(email) === normalizeEmail(env.MERCHANT_ADMIN_EMAIL)
     ? "merchant_admin"
     : "customer";
 }
@@ -30,15 +35,20 @@ export async function syncUser(clerkUser: ClerkUserLike): Promise<User | null> {
     );
   }
 
-  const role = roleForEmail(clerkUser.primaryEmail);
+  // `users.email` is a case-sensitive unique index and `MERCHANT_ADMIN_EMAIL`
+  // is not guaranteed to be trimmed, so normalize once here — the same
+  // normalized value both decides the role and is what gets stored, so the
+  // two can never disagree.
+  const email = normalizeEmail(clerkUser.primaryEmail);
+  const role = roleForEmail(email);
 
   try {
     return await prisma.user.upsert({
       where: { clerkId: clerkUser.id },
-      update: { email: clerkUser.primaryEmail, role },
+      update: { email, role },
       create: {
         clerkId: clerkUser.id,
-        email: clerkUser.primaryEmail,
+        email,
         role,
         merchantId: merchant.id,
       },
@@ -50,7 +60,7 @@ export async function syncUser(clerkUser: ClerkUserLike): Promise<User | null> {
     // actionable message instead of leaking the Prisma error/stack trace.
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       throw new Error(
-        `Cannot sync user: the email "${clerkUser.primaryEmail}" is already in use by a different account.`,
+        `Cannot sync user: the email "${email}" is already in use by a different account.`,
       );
     }
     throw error;

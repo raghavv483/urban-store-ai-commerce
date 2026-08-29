@@ -23,6 +23,10 @@ describe("formatPaise", () => {
   it("throws on a non-integer, since paise are always whole", () => {
     expect(() => formatPaise(1299.5)).toThrow(/integer/i);
   });
+
+  it("throws on a negative amount, since money is never negative here", () => {
+    expect(() => formatPaise(-100)).toThrow(/non-negative/i);
+  });
 });
 
 describe("paiseToRupees", () => {

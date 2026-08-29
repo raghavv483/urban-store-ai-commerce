@@ -123,3 +123,25 @@ Mode** for payments. LLM provider abstracted behind a clean interface.
 6. demo impact
 
 Prefer a modular monolith over microservices. Prefer simple and reliable over clever.
+
+## Build mode: LEAN (important)
+
+Do NOT use the superpowers writing-plans or subagent-driven-development
+skills unless I explicitly type the /superpowers command myself. They are
+too slow and token-heavy for this project.
+
+Default behavior for every phase:
+- Build directly. No multi-thousand-line plan files.
+- Write code first. Do NOT write a test for every function. Write tests
+  ONLY for the payment spine (Day 2) and the agent policy/auth boundary
+  (Day 6) — nothing else needs tests during this build.
+- Do NOT re-run the full test suite after every small change. Run
+  typecheck once at the end of a phase, and only run a specific test if
+  I ask.
+- No subagents. Work inline in this session.
+- One phase at a time, but move fast within a phase.
+- Verify a phase by telling me how to check it in the browser, not by
+  running exhaustive automated checks.
+
+If a task is genuinely risky (money, security), you may pause and propose
+a short plan in chat (a few bullets, not a file) — but keep it brief.
