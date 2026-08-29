@@ -89,7 +89,12 @@ export async function createCheckout(params: {
     orderBy: { createdAt: "desc" },
   });
 
-  if (open?.razorpayOrderId) {
+  // Reuse ONLY if the open order still bills the cart's current total. If the cart
+  // changed after the order was created (items added, a price moved), reusing it
+  // would charge the stale, usually lower, amount — the buyer gets the new goods at
+  // the old price. Idempotency must not become a discount. The stale order is
+  // cancelled and a fresh one created for the correct amount.
+  if (open?.razorpayOrderId && open.totalInPaise === priced.totalInPaise) {
     return {
       orderId: open.id,
       razorpayOrderId: open.razorpayOrderId,
@@ -99,6 +104,33 @@ export async function createCheckout(params: {
       reused: true,
       priceDrift: priced.priceDrift,
     };
+  }
+
+  if (open && open.totalInPaise !== priced.totalInPaise) {
+    await prisma.order.update({
+      where: { id: open.id },
+      data: { status: "cancelled" },
+    });
+    await recordMoneyAction(prisma, {
+      merchantId,
+      actor,
+      trigger: `checkout:${cartId}`,
+      inputSummary: `Cart ${cartId} changed after order ${open.id} was created.`,
+      outputSummary: `Cancelled stale order ${open.id} (${open.totalInPaise} paise) because the cart now totals ${priced.totalInPaise} paise. A new order will be created for the correct amount.`,
+      status: "succeeded",
+      actions: [
+        {
+          actionType: "cancel_stale_order",
+          parameters: { cartId, orderId: open.id },
+          policyDecision:
+            "deny reuse: order total no longer matches the cart total; charging the stale amount would undercharge",
+          result: {
+            staleTotalInPaise: open.totalInPaise,
+            currentTotalInPaise: priced.totalInPaise,
+          },
+        },
+      ],
+    });
   }
 
   // Attempt number makes the idempotency key unique per retry while staying

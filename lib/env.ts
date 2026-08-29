@@ -13,6 +13,16 @@ const envSchema = z.object({
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
   CLERK_SECRET_KEY: z.string().min(1),
   GROQ_API_KEY: z.string().min(1),
+  // Groq speaks the OpenAI wire format, so the provider abstraction is just the
+  // OpenAI SDK pointed at this base URL.
+  GROQ_BASE_URL: z.string().url().default("https://api.groq.com/openai/v1"),
+  // Groq retires model ids on short notice — the llama-3.x ids this project
+  // originally used are already gone. Verify against GET /openai/v1/models
+  // before changing these.
+  LLM_MODEL: z.string().min(1).default("openai/gpt-oss-120b"),
+  LLM_FAST_MODEL: z.string().min(1).default("openai/gpt-oss-20b"),
+  LLM_MAX_RETRIES: z.coerce.number().int().min(0).max(10).default(3),
+  LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   MERCHANT_ADMIN_EMAIL: z.string().email(),
   EMBEDDING_DIMENSIONS: z.coerce.number().int().positive(),
   APP_BASE_URL: z.string().url(),
