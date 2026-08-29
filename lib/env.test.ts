@@ -7,6 +7,7 @@ const valid = {
   RAZORPAY_KEY_ID: "rzp_test_abc",
   RAZORPAY_KEY_SECRET: "secret",
   RAZORPAY_WEBHOOK_SECRET: "whsec",
+  NEXT_PUBLIC_RAZORPAY_KEY_ID: "rzp_test_abc",
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_abc",
   CLERK_SECRET_KEY: "sk_test_abc",
   GROQ_API_KEY: "gsk_abc",

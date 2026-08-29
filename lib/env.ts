@@ -6,6 +6,10 @@ const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().min(1),
   RAZORPAY_KEY_SECRET: z.string().min(1),
   RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
+  // Public key id for Razorpay Checkout in the browser. Safe to expose — it is the
+  // key id only, never the secret — but it must equal RAZORPAY_KEY_ID or Checkout
+  // will reject orders created with the other key.
+  NEXT_PUBLIC_RAZORPAY_KEY_ID: z.string().min(1),
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
   CLERK_SECRET_KEY: z.string().min(1),
   GROQ_API_KEY: z.string().min(1),

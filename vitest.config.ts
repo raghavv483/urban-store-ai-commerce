@@ -7,6 +7,15 @@ config({ path: ".env.local" });
 
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
+  resolve: {
+    alias: {
+      // `server-only` throws on import outside a React Server Component, which
+      // includes Vitest. The payments modules import it deliberately as a build
+      // guard against ever being pulled into a client bundle; stubbing it here
+      // keeps that guard in the app while letting the spine be unit-tested.
+      "server-only": new URL("./test/stubs/server-only.ts", import.meta.url).pathname,
+    },
+  },
   test: {
     // `node` is the default because most tests here talk to Prisma, which
     // misbehaves under jsdom. Component tests opt in per-file with a
