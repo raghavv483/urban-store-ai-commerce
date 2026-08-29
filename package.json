@@ -14,7 +14,8 @@
     "db:migrate:dev:DANGEROUS": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "rag:seed": "tsx --conditions=react-server --env-file=.env.local rag/seed-knowledge.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -23,6 +24,7 @@
     "@langchain/langgraph": "^1.4.13",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@xenova/transformers": "^2.17.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "next": "16.3.3",

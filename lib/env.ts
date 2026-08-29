@@ -25,6 +25,9 @@ const envSchema = z.object({
   LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
   MERCHANT_ADMIN_EMAIL: z.string().email(),
   EMBEDDING_DIMENSIONS: z.coerce.number().int().positive(),
+  // Local sentence-transformer run in-process by @xenova/transformers. Must agree
+  // with EMBEDDING_DIMENSIONS and with the vector(N) width of knowledge_chunks.
+  EMBEDDING_MODEL: z.string().min(1).default("Xenova/all-MiniLM-L6-v2"),
   APP_BASE_URL: z.string().url(),
 });
 

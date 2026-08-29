@@ -13,7 +13,18 @@ export const searchProducts: AgentTool = {
   description:
     "Search the store catalog by free text and/or category, optionally capped at a maximum price. Use for 'find me a laptop', 'show me accessories under 2000'. Returns matching products with price and stock.",
   inputSchema: z.object({
-    query: z.string().min(1).max(128).optional().describe("free-text search over name and description"),
+    // Accepts "" and normalises it away: told not to put a use case in `query`,
+    // the model sends an empty string rather than omitting the key, and rejecting
+    // that would fail the whole call over a formatting detail.
+    query: z
+      .string()
+      .max(128)
+      .optional()
+      .transform((v) => {
+        const t = v?.trim();
+        return t ? t : undefined;
+      })
+      .describe("literal text match on product name/description; omit for use cases"),
     category: z
       .enum(["Laptops", "Monitors", "Accessories", "Audio"])
       .optional()
@@ -34,10 +45,25 @@ export const searchProducts: AgentTool = {
       limit: number;
     };
 
-    let products = await listProducts(ctx.merchantId, { q: query, category });
-    if (maxPriceInPaise !== undefined) {
-      products = products.filter((p) => p.priceInPaise <= maxPriceInPaise);
+    const applyPrice = (rows: Awaited<ReturnType<typeof listProducts>>) =>
+      maxPriceInPaise === undefined
+        ? rows
+        : rows.filter((p) => p.priceInPaise <= maxPriceInPaise);
+
+    let products = applyPrice(await listProducts(ctx.merchantId, { q: query, category }));
+    let droppedQuery = false;
+
+    // `query` is a literal SQL match on name/description, but the router hands it
+    // whatever the shopper said — "programming", "for coding", "gaming". Those
+    // describe a use case, not a product name, so they match nothing and the
+    // shopper is told the catalog is empty when it isn't. When a free-text term
+    // finds nothing but a structural filter exists, drop the term and return the
+    // filtered set instead of a misleading empty result.
+    if (products.length === 0 && query && (category || maxPriceInPaise !== undefined)) {
+      products = applyPrice(await listProducts(ctx.merchantId, { category }));
+      droppedQuery = products.length > 0;
     }
+
     const trimmed = products.slice(0, limit);
 
     return ok(
@@ -52,7 +78,7 @@ export const searchProducts: AgentTool = {
       })),
       `Found ${trimmed.length} product(s)${category ? ` in ${category}` : ""}${
         maxPriceInPaise ? ` under ${formatPaise(maxPriceInPaise)}` : ""
-      }.`,
+      }${droppedQuery ? ` (no name match for "${query}", so showing all that fit the filters)` : ""}.`,
     );
   },
 };

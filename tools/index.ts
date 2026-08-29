@@ -6,6 +6,7 @@ import { recordMoneyAction } from "@/payments/audit";
 import type { AgentTool, ToolContext, ToolResult } from "./types";
 import { searchProducts, getProduct, getInventory, getRecommendations } from "./catalog";
 import { getCart, addToCart, createRazorpayOrder, getPaymentStatus } from "./commerce";
+import { searchKnowledgeBase, getReturnPolicy } from "./knowledge";
 
 export * from "./types";
 
@@ -19,6 +20,8 @@ export const TOOLS = {
   addToCart,
   createRazorpayOrder,
   getPaymentStatus,
+  searchKnowledgeBase,
+  getReturnPolicy,
 } as const satisfies Record<string, AgentTool>;
 
 export type ToolName = keyof typeof TOOLS;
@@ -167,6 +170,7 @@ export const routerDecisionSchema = z.object({
     "cart_operation",
     "checkout",
     "payment_status",
+    "policy_question",
     "unsupported",
   ]),
   // A strict enum, not a free string: a model that emits an intent name here
@@ -183,9 +187,27 @@ export const routerDecisionSchema = z.object({
       "addToCart",
       "createRazorpayOrder",
       "getPaymentStatus",
+      "searchKnowledgeBase",
+      "getReturnPolicy",
     ])
     .nullable(),
   args: z.record(z.string(), z.unknown()).default({}),
+  // Agentic RAG (ARCHITECTURE §4): some questions need live DB data AND policy
+  // text — "best in-stock laptop under 80k for programming" needs both the catalog
+  // and the buying guide. One optional second tool covers that without turning the
+  // router into a planner.
+  secondaryTool: z
+    .enum([
+      "searchProducts",
+      "getProduct",
+      "getInventory",
+      "getRecommendations",
+      "searchKnowledgeBase",
+      "getReturnPolicy",
+    ])
+    .nullish()
+    .default(null),
+  secondaryArgs: z.record(z.string(), z.unknown()).nullish().default({}),
   reasoning: z.string().max(300).describe("one short sentence, no chain-of-thought"),
 });
 
