@@ -141,6 +141,10 @@ export async function auditAgentRun(input: {
   return recordMoneyAction(prisma, {
     merchantId: input.ctx.merchantId,
     actor: input.ctx.actor === "ai_buyer" ? "system" : "human_checkout",
+    // Without this the audit files every agent run under the blanket actor and a
+    // merchant cannot tell an autonomous purchase from a webhook — which is the
+    // one distinction /merchant/agent-activity exists to show.
+    agentName: input.agentName,
     trigger: input.trigger,
     sessionId: input.ctx.sessionId,
     inputSummary: input.userMessage.slice(0, 500),

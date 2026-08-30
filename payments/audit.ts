@@ -34,6 +34,12 @@ export async function recordMoneyAction(
   input: {
     merchantId: string;
     actor: AuditActor;
+    /**
+     * Which agent acted, when that is more specific than the actor category —
+     * e.g. "ai_buyer" or "router" rather than the blanket "system". Falls back
+     * to the actor so existing callers are unchanged.
+     */
+    agentName?: string;
     trigger: string;
     inputSummary: string;
     outputSummary: string;
@@ -46,7 +52,7 @@ export async function recordMoneyAction(
     data: {
       merchantId: input.merchantId,
       sessionId: input.sessionId ?? null,
-      agentName: input.actor,
+      agentName: input.agentName ?? input.actor,
       trigger: input.trigger,
       inputSummary: input.inputSummary,
       outputSummary: input.outputSummary,
