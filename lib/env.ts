@@ -29,6 +29,12 @@ const envSchema = z.object({
   // with EMBEDDING_DIMENSIONS and with the vector(N) width of knowledge_chunks.
   EMBEDDING_MODEL: z.string().min(1).default("Xenova/all-MiniLM-L6-v2"),
   APP_BASE_URL: z.string().url(),
+  // Shared secret an autonomous agent presents as `Authorization: Bearer <key>`.
+  // Long enough that guessing is not a realistic attack.
+  AGENT_API_KEY: z.string().min(32),
+  // Hard ceiling on a single agent-initiated order. The spine still derives the
+  // amount from the cart; this bounds how much an agent may commit in one go.
+  AGENT_MAX_ORDER_VALUE_PAISE: z.coerce.number().int().positive().default(10_000_000),
 });
 
 export type Env = z.infer<typeof envSchema>;

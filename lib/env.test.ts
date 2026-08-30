@@ -14,6 +14,7 @@ const valid = {
   MERCHANT_ADMIN_EMAIL: "owner@urbanstore.test",
   EMBEDDING_DIMENSIONS: "384",
   APP_BASE_URL: "http://localhost:3000",
+  AGENT_API_KEY: "a".repeat(64),
 };
 
 describe("parseEnv", () => {

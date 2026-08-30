@@ -15,7 +15,9 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
-    "rag:seed": "tsx --conditions=react-server --env-file=.env.local rag/seed-knowledge.ts"
+    "rag:seed": "tsx --conditions=react-server --env-file=.env.local rag/seed-knowledge.ts",
+    "agent:buy": "tsx --env-file=.env.local scripts/ai-buyer.ts",
+    "agent:buy:fail": "tsx --env-file=.env.local scripts/ai-buyer.ts --fail"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
