@@ -330,6 +330,32 @@ framing in README + UI copy (§10). Seed a clean, coherent demo dataset. Re-test
 flow end to end. Fix what's broken.
 **Done when:** every flow in the demo script (§11) runs clean twice in a row.
 
+#### Polish task — one-sentence buy → immediate checkout link
+
+Today, buying in `/ai-shopping` takes several turns: "add a thinkpad x to my cart",
+then a confirmation, then hunting for the checkout link. Make a single message —
+"buy me a thinkpad x", "I want to buy the macbook air" — run the whole path in one
+reply: **search → add to cart → (Day 5 upsell offer, if any) → a visible "go to
+checkout" link in that same reply.**
+
+Notes:
+
+- **Router-only change.** Reuses `searchProducts`, `addToCart` and the existing Day 5
+  upsell logic as they are. No new backend logic, no change to the spine, the
+  checkout page, or the payment path. The work is teaching the router to recognise
+  "buy X" as one combined intent rather than routing it as a plain product search.
+- **Keep the upsell.** If the product has `product_relations`, the Day 5 offer should
+  still fire. The offer-then-confirm pattern works and stays — a faster path to
+  checkout is not a reason to skip the accessory suggestion.
+- **Ambiguity asks, never guesses.** "buy me a laptop" with no model named must ask a
+  clarifying question rather than picking one. Same honesty-first rule as the RAG
+  guardrail: when the system does not know, it says so instead of choosing for the
+  buyer. Guessing here is worse than guessing in search — it puts something in a
+  cart the customer did not choose.
+- **Money safety unchanged.** The total shown against the checkout link is still
+  server-computed from the DB cart, never a figure the model states. This task only
+  shortens the route to checkout; it does not touch what gets charged.
+
 ### Day 10 — Record + final buffer
 Record the 5-minute video (§11). Reserve the rest for the thing that breaks. Something
 will. This is why 10 days beats 7 — this day is real slack, not wishful.
