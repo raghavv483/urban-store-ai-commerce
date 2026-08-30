@@ -7,6 +7,7 @@ import {
   MemorySaver,
 } from "@langchain/langgraph";
 import { completeJson, complete, LlmError } from "@/lib/llm";
+import { formatPaise } from "@/lib/money";
 import { NO_KNOWLEDGE_MESSAGE } from "@/tools/knowledge";
 import {
   auditAgentRun,
@@ -62,7 +63,37 @@ const RouterState = Annotation.Root({
   }),
   reply: Annotation<string>({ reducer: (_p, n) => n, default: () => "" }),
   error: Annotation<string | null>({ reducer: (_p, n) => n, default: () => null }),
+  /**
+   * An accessory the assistant has offered but the customer has not yet accepted.
+   * Survives between turns via the checkpointer so a bare "yes" can be resolved.
+   * Nothing is ever added to the cart while this is set — it is an offer, not a
+   * pending action (CLAUDE.md: the customer must confirm before any cart change).
+   */
+  pendingUpsell: Annotation<PendingUpsell | null>({
+    reducer: (_p, n) => n,
+    default: () => null,
+  }),
+  /** Set on the turn an offer was accepted, so the reply can show the total lift. */
+  upsellAccepted: Annotation<PendingUpsell | null>({
+    reducer: (_p, n) => n,
+    default: () => null,
+  }),
 });
+
+type PendingUpsell = {
+  slug: string;
+  name: string;
+  priceInPaise: number;
+  /** Cart total at the moment the offer was made — the "up from" figure. */
+  baseTotalInPaise: number;
+  anchorName: string;
+};
+
+/** Short, unambiguous acceptances. Anything else falls through to the model. */
+const AFFIRMATIVE =
+  /^(yes|yes please|yeah|yep|yup|sure|ok|okay|please|please do|go ahead|sounds good|do it|add it|add that|add them|why not|definitely|absolutely)\b[.!]?$/i;
+const NEGATIVE =
+  /^(no|no thanks|no thank you|nope|nah|not now|maybe later|skip|i'?m good|that'?s all|no need)\b[.!]?$/i;
 
 const CLASSIFY_SYSTEM = `You are the router for Urban Store's shopping assistant.
 
@@ -112,6 +143,43 @@ Respond with ONLY a JSON object, no prose and no markdown fence:
 {"intent":"...","tool":"...","args":{...},"secondaryTool":null,"secondaryArgs":{},"reasoning":"one short sentence"}`;
 
 async function classify(state: typeof RouterState.State) {
+  const offer = state.pendingUpsell;
+  const said = state.message.trim();
+
+  // A standing offer turns "yes" into an unambiguous instruction, so resolve it
+  // deterministically rather than asking the model to infer what "it" meant. This
+  // is also the safer path: the accessory added is exactly the one offered.
+  if (offer && AFFIRMATIVE.test(said)) {
+    return {
+      decision: {
+        intent: "cart_operation" as const,
+        tool: "addToCart" as const,
+        args: { productSlug: offer.slug, quantity: 1 },
+        secondaryTool: null,
+        secondaryArgs: {},
+        reasoning: `Customer accepted the suggested ${offer.name}.`,
+      },
+      upsellAccepted: offer,
+      pendingUpsell: null,
+    };
+  }
+
+  if (offer && NEGATIVE.test(said)) {
+    // Declined. Drop the offer so it is not re-pitched, and say nothing more
+    // about it — one suggestion, not a sales pitch.
+    return {
+      decision: {
+        intent: "unsupported" as const,
+        tool: null,
+        args: {},
+        secondaryTool: null,
+        secondaryArgs: {},
+        reasoning: "Customer declined the suggested accessory.",
+      },
+      pendingUpsell: null,
+    };
+  }
+
   const recent = state.history
     .slice(-6)
     .map((m) => `${m.role === "user" ? "Customer" : "Assistant"}: ${m.content}`)
@@ -168,6 +236,32 @@ async function execute(state: typeof RouterState.State) {
 
   const calls: ToolCallRecord[] = [];
 
+  // getCart and createRazorpayOrder need a cart that exists. Without one the Zod
+  // schema rejects the call and the shopper would see "Arguments rejected by
+  // getCart's schema — cartId: Invalid input", which is an internal detail, not an
+  // answer. Say the useful thing instead (CLAUDE.md: never expose internals).
+  if (!state.cartId && ["getCart", "createRazorpayOrder"].includes(decision.tool)) {
+    return {
+      calls: [
+        {
+          tool: decision.tool,
+          input: {},
+          result: {
+            ok: false as const,
+            code: "NO_CART",
+            error:
+              decision.tool === "getCart"
+                ? "Your cart is empty at the moment. Tell me what you're after and I'll add it."
+                : "There's nothing in your cart to pay for yet. Add something first and I'll take you through checkout.",
+            summary: "No active cart for this conversation.",
+          },
+          durationMs: 0,
+        },
+      ],
+      pendingUpsell: null,
+    };
+  }
+
   calls.push(
     await runTool(
       decision.tool,
@@ -197,7 +291,86 @@ async function execute(state: typeof RouterState.State) {
     );
   }
 
-  return { calls };
+  // ---- Active upsell (PRD feature 10) ----
+  // After something lands in the cart, look for a curated accessory to suggest.
+  // This only ever *proposes*; the cart is not touched until the customer agrees.
+  let pendingUpsell: PendingUpsell | null = null;
+  const addCall = calls.find((c) => c.tool === "addToCart" && c.result.ok);
+
+  if (addCall && addCall.result.ok && !state.upsellAccepted) {
+    const added = addCall.result.data as {
+      cartId?: string;
+      totalInPaise?: number;
+      added?: { slug?: string };
+    };
+    const anchorSlug = added.added?.slug;
+
+    if (anchorSlug && added.cartId && typeof added.totalInPaise === "number") {
+      pendingUpsell = await proposeAccessory({
+        anchorSlug,
+        cartId: added.cartId,
+        cartTotalInPaise: added.totalInPaise,
+        ctx: state.ctx,
+      });
+    }
+  }
+
+  return { calls, pendingUpsell };
+}
+
+/**
+ * Picks one accessory worth mentioning: highest-scoring cross-sell relation that is
+ * in stock and not already in the cart. Returns null when there is nothing sensible
+ * to suggest, which is the common case for accessories themselves.
+ */
+async function proposeAccessory(input: {
+  anchorSlug: string;
+  cartId: string;
+  cartTotalInPaise: number;
+  ctx: ToolContext;
+}): Promise<PendingUpsell | null> {
+  const recs = await runTool(
+    "getRecommendations",
+    { slug: input.anchorSlug, limit: 3 },
+    input.ctx,
+  );
+  if (!recs.result.ok) return null;
+
+  const candidates = (recs.result.data as Array<{
+    slug: string;
+    name: string;
+    priceInPaise: number;
+    stock: number;
+  }>) ?? [];
+  if (candidates.length === 0) return null;
+
+  // Never suggest something the customer already has in the cart.
+  const cart = await runTool("getCart", { cartId: input.cartId }, input.ctx);
+  const inCart = new Set<string>(
+    cart.result.ok
+      ? ((cart.result.data as { lines?: Array<{ slug: string }> }).lines ?? []).map(
+          (l) => l.slug,
+        )
+      : [],
+  );
+
+  const pick = candidates.find((c) => c.stock > 0 && !inCart.has(c.slug));
+  if (!pick) return null;
+
+  const anchorName =
+    (cart.result.ok
+      ? (cart.result.data as { lines?: Array<{ slug: string; name: string }> }).lines?.find(
+          (l) => l.slug === input.anchorSlug,
+        )?.name
+      : undefined) ?? input.anchorSlug;
+
+  return {
+    slug: pick.slug,
+    name: pick.name,
+    priceInPaise: pick.priceInPaise,
+    baseTotalInPaise: input.cartTotalInPaise,
+    anchorName,
+  };
 }
 
 const GROUNDING_RULES = `You are Urban Store's shopping assistant. Write 1-3 short sentences.
@@ -220,7 +393,28 @@ async function respond(state: typeof RouterState.State) {
   const decision = state.decision;
   const calls = state.calls;
 
+  // An accepted suggestion gets a deterministic reply: the whole point is showing
+  // the total moving, and a model paraphrase could blur the two figures.
+  const accepted = state.upsellAccepted;
+  if (accepted) {
+    const addCall = calls.find((c) => c.tool === "addToCart");
+    if (addCall?.result.ok) {
+      const data = addCall.result.data as { totalInPaise?: number };
+      const now = data.totalInPaise ?? accepted.baseTotalInPaise + accepted.priceInPaise;
+      return {
+        reply: `Added the ${accepted.name}. Cart total is now ${formatPaise(now)}, up from ${formatPaise(accepted.baseTotalInPaise)}.`,
+      };
+    }
+    if (addCall && !addCall.result.ok) {
+      return { reply: addCall.result.error };
+    }
+  }
+
+  // Declined, or nothing to do.
   if (!decision?.tool || calls.length === 0) {
+    if (decision?.reasoning?.includes("declined")) {
+      return { reply: "No problem. Anything else I can help you find?" };
+    }
     return {
       reply:
         "I can help you browse products, check stock, answer questions about returns, warranty and delivery, and take you through checkout. What are you looking for?",
@@ -269,11 +463,26 @@ async function respond(state: typeof RouterState.State) {
       ],
       { tier: "reasoning", maxTokens: 300 },
     );
-    return { reply: reply || calls[0].result.summary };
+    return { reply: appendSuggestion(reply || calls[0].result.summary, state.pendingUpsell) };
   } catch {
     // Summariser unavailable — the deterministic tool summary still tells the truth.
-    return { reply: calls.map((c) => c.result.summary).join(" ") };
+    return {
+      reply: appendSuggestion(
+        calls.map((c) => c.result.summary).join(" "),
+        state.pendingUpsell,
+      ),
+    };
   }
+}
+
+/**
+ * One short line, appended deterministically rather than left to the model — which
+ * would otherwise invent accessory names and prices. Names the product and its real
+ * price and stops; no bundle pitch, no second ask.
+ */
+function appendSuggestion(reply: string, offer: PendingUpsell | null): string {
+  if (!offer) return reply;
+  return `${reply.trim()} Most people pair the ${offer.anchorName} with the ${offer.name} (${formatPaise(offer.priceInPaise)}) — want me to add it?`;
 }
 
 const checkpointer = new MemorySaver();
@@ -365,6 +574,11 @@ export async function runAgentTurn(input: {
       cartId: input.cartId ?? null,
       history: [{ role: "user" as const, content: input.message }],
       calls: [],
+      // Reset per turn. The checkpointer would otherwise carry this forward and
+      // every subsequent reply would claim an accessory had just been accepted.
+      // `pendingUpsell` is deliberately NOT reset here — it has to survive into the
+      // next turn for a bare "yes" to mean anything.
+      upsellAccepted: null,
     },
     { configurable: { thread_id: threadId } },
   );
@@ -415,6 +629,8 @@ export async function classifyOnly(message: string): Promise<RouterDecision | nu
     calls: [],
     reply: "",
     error: null,
+    pendingUpsell: null,
+    upsellAccepted: null,
   });
   return out.decision ?? null;
 }

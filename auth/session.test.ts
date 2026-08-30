@@ -40,8 +40,19 @@ describe("resolveSessionContext", () => {
   });
 
   it("promotes the configured merchant admin email to merchant_admin", async () => {
-    const ctx = await resolveSessionContext(ADMIN_CLERK_ID, async () => ({
-      id: ADMIN_CLERK_ID,
+    // `users.email` is unique. Once a real person has signed up with
+    // MERCHANT_ADMIN_EMAIL, inventing a second clerkId for that same address hits
+    // a P2002 and this test fails on real data rather than on a defect. Reuse the
+    // existing identity when there is one — the assertion is about the role the
+    // email earns, not about which clerkId carries it.
+    const existing = await prisma.user.findUnique({
+      where: { email: env.MERCHANT_ADMIN_EMAIL },
+      select: { clerkId: true },
+    });
+    const clerkId = existing?.clerkId ?? ADMIN_CLERK_ID;
+
+    const ctx = await resolveSessionContext(clerkId, async () => ({
+      id: clerkId,
       primaryEmail: env.MERCHANT_ADMIN_EMAIL,
     }));
 

@@ -45,7 +45,14 @@ describe("seed", () => {
   it("creates abandoned carts, each with items and an abandoned event", async () => {
     const merchant = await prisma.merchant.findUniqueOrThrow({ where: { slug: MERCHANT_SLUG } });
     const carts = await prisma.cart.findMany({
-      where: { merchantId: merchant.id, status: "abandoned" },
+      // Scoped to the seed's own session ids. Asserting a bare count of abandoned
+      // carts assumed this test owned the database — manual testing through
+      // /test-spine abandons its previous cart on each run, so the number grew.
+      where: {
+        merchantId: merchant.id,
+        status: "abandoned",
+        sessionId: { startsWith: "seed-abandoned-" },
+      },
       include: { events: true, items: true },
     });
     expect(carts.length).toBeGreaterThanOrEqual(3);
@@ -69,7 +76,13 @@ describe("seed", () => {
       await Promise.all([
         prisma.product.count({ where: { merchantId: merchant.id } }),
         prisma.productRelation.count({ where: { merchantId: merchant.id } }),
-        prisma.cart.count({ where: { merchantId: merchant.id, status: "abandoned" } }),
+        prisma.cart.count({
+          where: {
+            merchantId: merchant.id,
+            status: "abandoned",
+            sessionId: { startsWith: "seed-abandoned-" },
+          },
+        }),
         prisma.order.count({ where: { merchantId: merchant.id } }),
         prisma.orderItem.count({ where: { order: { merchantId: merchant.id } } }),
         prisma.payment.count({ where: { order: { merchantId: merchant.id } } }),
