@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 const TABS = [
   { href: "/merchant", label: "Overview" },
   { href: "/merchant/orders", label: "Orders" },
+  { href: "/merchant/campaigns", label: "Campaigns" },
   { href: "/merchant/agent-activity", label: "Agent activity" },
 ];
 

@@ -7,6 +7,7 @@ import type { AgentTool, ToolContext, ToolResult } from "./types";
 import { searchProducts, getProduct, getInventory, getRecommendations } from "./catalog";
 import { getCart, addToCart, createRazorpayOrder, getPaymentStatus } from "./commerce";
 import { searchKnowledgeBase, getReturnPolicy } from "./knowledge";
+import { getAbandonedCarts, proposeCampaign } from "./growth";
 
 export * from "./types";
 
@@ -22,6 +23,8 @@ export const TOOLS = {
   getPaymentStatus,
   searchKnowledgeBase,
   getReturnPolicy,
+  getAbandonedCarts,
+  proposeCampaign,
 } as const satisfies Record<string, AgentTool>;
 
 export type ToolName = keyof typeof TOOLS;

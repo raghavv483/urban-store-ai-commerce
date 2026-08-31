@@ -24,6 +24,10 @@ export type AuditActionInput = {
   parameters?: Prisma.InputJsonValue;
   policyDecision?: string;
   result?: Prisma.InputJsonValue;
+  /** True when a human had to sign off before this action could take effect. */
+  approvalRequired?: boolean;
+  /** "approved" | "rejected" | "pending" — who decided, recorded alongside. */
+  approvalStatus?: string;
 };
 
 /** A Prisma client or an interactive transaction — audit writes join the caller's tx. */
@@ -63,8 +67,8 @@ export async function recordMoneyAction(
           actionType: a.actionType,
           parameters: a.parameters ?? {},
           policyDecision: a.policyDecision ?? null,
-          approvalRequired: false,
-          approvalStatus: null,
+          approvalRequired: a.approvalRequired ?? false,
+          approvalStatus: a.approvalStatus ?? null,
           result: a.result ?? {},
         })),
       },
