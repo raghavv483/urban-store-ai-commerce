@@ -88,6 +88,21 @@ export async function GET() {
           compatibleWith: compatible.get(p.slug) ?? [],
           returnEligible: true,
         })),
+        /*
+         * Honest framing: Urban Store does NOT implement ACP, AP2, x402 or NPCI's
+         * UAP. No agent-payments protocol is spoken on the wire here.
+         *
+         * What it does have is the shape those protocols assume: a machine-readable
+         * catalog a buyer can discover without credentials, a bearer-authenticated
+         * action surface, server-derived amounts an agent cannot influence, and a
+         * signed settlement callback. Adopting one of them would be adapter work at
+         * this boundary, not a redesign.
+         */
+        protocols: {
+          implemented: [],
+          note: "No agent-payments protocol is implemented. This endpoint is shaped to be adaptable to ACP, AP2, x402 or NPCI UAP: open discovery, bearer-authenticated actions, server-derived amounts, and signature-verified settlement.",
+          references: ["ACP", "AP2", "x402", "NPCI UAP"],
+        },
         // Tells a consuming agent how to actually transact, so discovery and
         // action are one hop apart rather than requiring out-of-band docs.
         actions: {

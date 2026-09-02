@@ -29,7 +29,12 @@ describe("ProductCard", () => {
 
   it("shows an in-stock indicator when stock is available", () => {
     render(<ProductCard product={product} />);
-    expect(screen.getByText(/12 in stock/i)).toBeDefined();
+    expect(screen.getByText(/^in stock$/i)).toBeDefined();
+  });
+
+  it("warns when stock is low rather than just saying in stock", () => {
+    render(<ProductCard product={{ ...product, stock: 3 }} />);
+    expect(screen.getByText(/only 3 left/i)).toBeDefined();
   });
 
   it("shows out of stock when stock is zero", () => {

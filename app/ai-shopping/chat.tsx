@@ -14,6 +14,8 @@ type Turn = {
   products?: ProductListItem[];
   sources?: Source[];
   pending?: boolean;
+  /** Set when this turn changed the cart, so checkout is one click away. */
+  checkoutCartId?: string | null;
 };
 
 const OPENERS = [
@@ -88,6 +90,11 @@ export function Chat({ initialCartId }: { initialCartId: string | null }) {
                   }),
                 ),
                 sources: data.sources ?? [],
+                // A turn that put something in the cart offers checkout right
+                // there, rather than making the shopper hunt for the footer link.
+                checkoutCartId: (data.tools ?? []).includes("addToCart")
+                  ? (data.cartId ?? null)
+                  : null,
               }
             : turn,
         ),
@@ -163,9 +170,19 @@ export function Chat({ initialCartId }: { initialCartId: string | null }) {
                     {turn.products && turn.products.length > 0 ? (
                       <div className="grid gap-3 pt-1 sm:grid-cols-2 lg:grid-cols-3">
                         {turn.products.map((p) => (
-                          <ProductCard key={p.slug} product={p} />
+                          <ProductCard key={p.slug} product={p} compact />
                         ))}
                       </div>
+                    ) : null}
+
+                    {turn.checkoutCartId ? (
+                      <a
+                        href={`/checkout?cartId=${turn.checkoutCartId}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                      >
+                        Go to checkout
+                        <span aria-hidden="true">&rarr;</span>
+                      </a>
                     ) : null}
 
                     {turn.sources && turn.sources.length > 0 ? (

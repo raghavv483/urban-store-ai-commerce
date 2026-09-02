@@ -65,3 +65,25 @@ Done: schema, seed, Clerk auth with two roles, merchant-scoped product
 queries, `/shop` catalog and detail pages.
 
 Next: Day 2 — the transaction spine. See `urban-store-build-spec.md` §9.
+
+## Agent-payments protocols — where this sits
+
+Urban Store does **not** implement ACP, AP2, x402 or NPCI's UAP. No agent-payments
+protocol is spoken on the wire, and nothing here should be read as compliance with one.
+
+What it does have is the shape those protocols assume, built for its own reasons:
+
+| Property | Where it lives |
+|---|---|
+| Machine-readable catalog, discoverable without credentials | `GET /api/agent/catalog` |
+| Bearer-authenticated action surface for autonomous buyers | `POST /api/agent/cart`, `/api/agent/checkout` |
+| Amounts derived server-side, never accepted from the caller | `payments/cart.ts` → `payments/checkout.ts` |
+| Bounded agent authority | `AGENT_MAX_ORDER_VALUE_PAISE`, enforced before any Razorpay call |
+| Signature-verified settlement callback | `POST /api/webhooks/razorpay` |
+| Every agent action attributable and auditable | `agent_runs` / `agent_actions`, rendered at `/merchant/agent-activity` |
+
+Adopting one of these protocols would be adapter work at that boundary — mapping an
+existing discovery document and action surface onto their envelope — rather than a
+redesign of the money path. The constraint that makes that true is the prime directive:
+the model proposes, deterministic code decides, and the amount always comes from the
+database.
