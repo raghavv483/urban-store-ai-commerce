@@ -29,6 +29,14 @@ const envSchema = z.object({
   // with EMBEDDING_DIMENSIONS and with the vector(N) width of knowledge_chunks.
   EMBEDDING_MODEL: z.string().min(1).default("Xenova/all-MiniLM-L6-v2"),
   APP_BASE_URL: z.string().url(),
+  // Resend. Optional: without a key the app runs and campaigns still approve —
+  // they simply report that nothing could be sent, rather than failing.
+  RESEND_API_KEY: z.string().optional(),
+  // Sandbox requires a Resend-owned sender until a domain is verified.
+  RESEND_FROM: z.string().min(1).default("Urban Store <onboarding@resend.dev>"),
+  // Comma-separated. Sandbox only delivers to addresses verified on the account,
+  // so anything not listed here is reported unreachable instead of bounced.
+  RESEND_ALLOWED_RECIPIENTS: z.string().optional(),
   // Shared secret an autonomous agent presents as `Authorization: Bearer <key>`.
   // Long enough that guessing is not a realistic attack.
   AGENT_API_KEY: z.string().min(32),

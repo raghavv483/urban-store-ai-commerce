@@ -63,9 +63,11 @@ export async function decide(
 
     return {
       ok: true,
+      // Report what actually happened rather than a fixed line. `deliverySummary`
+      // is built from the real send outcome, including failures.
       message:
         decision === "approve"
-          ? `Campaign is now active for ${campaign.target.cartCount} cart(s). Simulated only — nothing was sent.`
+          ? `Campaign is now active for ${campaign.target.cartCount} cart(s). ${campaign.deliverySummary}`
           : "Campaign rejected. Nothing was sent and no customer was contacted.",
     };
   } catch (error) {

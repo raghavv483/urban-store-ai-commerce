@@ -54,8 +54,9 @@ export function CampaignBoard({ campaigns }: { campaigns: CampaignView[] }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-2xl text-sm text-muted-foreground">
           The growth agent can look at abandoned carts and draft a recovery campaign.
-          It cannot start one — every campaign stays inactive until you approve it, and
-          nothing is ever actually sent.
+          It cannot start one — every campaign stays inactive until you approve it.
+          Approving sends the copy for real, in Resend test mode, to shoppers with a
+          verified address on file.
         </p>
         <button
           onClick={() => run(proposeRecoveryCampaign)}
@@ -190,8 +191,9 @@ export function CampaignBoard({ campaigns }: { campaigns: CampaignView[] }) {
                 </div>
 
                 <p className="mt-3 text-xs text-muted-foreground">
-                  Proposed by {c.createdByAgent ?? "an agent"}. Approving marks it active
-                  for tracking — Urban Store does not send email or SMS.
+                  Proposed by {c.createdByAgent ?? "an agent"}. Approving sends this copy
+                  to shoppers whose cart is linked to a verified account; carts with no
+                  account on file are counted as unreachable rather than contacted.
                 </p>
               </li>
             ))}
