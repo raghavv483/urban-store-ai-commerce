@@ -10,7 +10,14 @@ import { runTool } from "@/tools";
 const CART_COOKIE = "urban_cart";
 
 export type AddToCartResult =
-  | { ok: true; cartId: string; totalDisplay: string; message: string }
+  | {
+      ok: true;
+      cartId: string;
+      totalDisplay: string;
+      message: string;
+      /** Units in the cart after the add, for the header badge. */
+      itemCount: number;
+    }
   | { ok: false; message: string };
 
 /**
@@ -58,6 +65,12 @@ export async function addToCartAction(
 
     const data = call.result.data as { cartId: string; totalDisplay: string };
 
+    const lines = await prisma.cartItem.findMany({
+      where: { cartId: data.cartId },
+      select: { quantity: true },
+    });
+    const itemCount = lines.reduce((n, l) => n + l.quantity, 0);
+
     jar.set(CART_COOKIE, data.cartId, {
       httpOnly: true,
       sameSite: "lax",
@@ -71,6 +84,7 @@ export async function addToCartAction(
       cartId: data.cartId,
       totalDisplay: data.totalDisplay,
       message: call.result.summary,
+      itemCount,
     };
   } catch {
     // Never surface an internal error to a shopper mid-purchase.

@@ -32,11 +32,11 @@ export default async function AgentCatalogPage() {
       <h1 className="mt-2 text-3xl font-bold tracking-tight">Agent Catalog</h1>
 
       <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-        This is the structured, machine-readable interface an autonomous AI shopping
-        agent uses to discover Urban Store&apos;s catalog — no authentication required
-        to browse, matching Track 01&apos;s &ldquo;agent-readable catalog&rdquo;
-        direction and the shape assumed by emerging agentic-commerce protocols
-        (ACP, AP2, x402, NPCI&apos;s UAP).
+        This is the structured, machine-readable interface an autonomous AI
+        shopping agent uses to discover Urban Store&apos;s catalog — no
+        authentication required to browse, matching Track 01&apos;s
+        &ldquo;agent-readable catalog&rdquo; direction and the shape assumed by
+        emerging agentic-commerce protocols (ACP, AP2, x402, NPCI&apos;s UAP).
       </p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -69,11 +69,13 @@ export default async function AgentCatalogPage() {
       <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-50/50 p-4 text-sm dark:bg-amber-950/15">
         <div className="font-medium">What is and is not implemented</div>
         <p className="mt-1 text-muted-foreground">
-          Urban Store does <strong>not</strong> implement ACP, AP2, x402 or UAP — no
-          agent-payments protocol is spoken on the wire. What it has is the shape they
-          assume: open discovery, a bearer-authenticated action surface, amounts derived
-          server-side that an agent cannot influence, and signature-verified settlement.
-          The <code className="text-xs">protocols</code> field below says exactly that.
+          Urban Store does <strong>not</strong> implement ACP, AP2, x402 or UAP
+          — no agent-payments protocol is spoken on the wire. What it has is the
+          shape they assume: open discovery, a bearer-authenticated action
+          surface, amounts derived server-side that an agent cannot influence,
+          and signature-verified settlement. The{" "}
+          <code className="text-xs">protocols</code> field below says exactly
+          that.
         </p>
       </div>
 
@@ -91,9 +93,9 @@ export default async function AgentCatalogPage() {
 
       <p className="mt-6 text-sm text-muted-foreground">
         The <code className="text-xs">actions</code> block tells an agent how to
-        transact without out-of-band documentation. Those endpoints need a bearer key —
-        and notice that checkout accepts a cart id and nothing else: there is no field
-        an agent could put a price in.
+        transact without out-of-band documentation. Those endpoints need a
+        bearer key — and notice that checkout accepts a cart id and nothing
+        else: there is no field an agent could put a price in.
       </p>
     </main>
   );
@@ -102,8 +104,12 @@ export default async function AgentCatalogPage() {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border p-4">
-      <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className="mt-1 text-2xl font-bold tabular-nums tracking-tight">{value}</dd>
+      <dt className="text-xs uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-1 text-2xl font-bold tabular-nums tracking-tight">
+        {value}
+      </dd>
     </div>
   );
 }

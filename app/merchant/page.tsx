@@ -2,6 +2,9 @@ import Link from "next/link";
 import { guardMerchantPage } from "@/auth/merchant-guard";
 import { getRevenueSummary, listMerchantOrders } from "@/db/queries/merchant";
 import { formatPaise } from "@/lib/money";
+import { RevenueTiles } from "./revenue-tiles";
+import { PageIn } from "@/components/motion";
+import { EmptyState, SectionHeading, SourceBadge, StatusText } from "./ui";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Overview · Urban Store Merchant" };
@@ -16,78 +19,25 @@ export default async function MerchantOverviewPage() {
   const hasRevenue = summary.paidOrderCount > 0;
 
   return (
-    <main className="py-8">
+    <PageIn className="py-8">
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Revenue
-        </h2>
+        <SectionHeading>Revenue</SectionHeading>
 
         {!hasRevenue ? (
-          <div className="mt-3 rounded-lg border border-dashed p-10 text-center">
-            <p className="font-medium">No paid orders yet.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Revenue appears here once a payment is confirmed by a signed webhook.
-            </p>
-          </div>
+          <EmptyState
+            title="No paid orders yet."
+            hint="Revenue appears here once a payment is confirmed by a signed webhook."
+          />
         ) : (
-          <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat
-              label="Total revenue"
-              value={formatPaise(summary.totalRevenueInPaise)}
-              sub={`${summary.paidOrderCount} paid order${summary.paidOrderCount === 1 ? "" : "s"}`}
-            />
-            {/* The number the whole AI-buyer story rests on, so it gets the accent. */}
-            <Stat
-              label="AI-attributed revenue"
-              value={formatPaise(summary.aiRevenueInPaise)}
-              sub={
-                summary.aiPaidOrderCount === 0
-                  ? "No AI-driven orders yet"
-                  : `${summary.aiSharePercent}% of revenue · ${summary.aiPaidOrderCount} order${
-                      summary.aiPaidOrderCount === 1 ? "" : "s"
-                    }`
-              }
-              highlight
-            />
-            <Stat
-              label="Human revenue"
-              value={formatPaise(summary.humanRevenueInPaise)}
-              sub={`${summary.humanPaidOrderCount} order${summary.humanPaidOrderCount === 1 ? "" : "s"}`}
-            />
-            <Stat
-              label="Average order value"
-              value={formatPaise(summary.averageOrderValueInPaise)}
-              sub="Across paid orders"
-            />
-          </div>
+          <RevenueTiles summary={summary} />
         )}
-
-        {hasRevenue && summary.aiPaidOrderCount > 0 ? (
-          <div className="mt-4 overflow-hidden rounded-lg border">
-            <div className="flex h-2.5" aria-hidden="true">
-              <div
-                className="bg-emerald-600"
-                style={{ width: `${summary.aiSharePercent}%` }}
-              />
-              <div className="flex-1 bg-muted" />
-            </div>
-            <p className="px-4 py-2.5 text-xs text-muted-foreground">
-              <span className="font-medium text-emerald-600">
-                {summary.aiSharePercent}% autonomous
-              </span>{" "}
-              — {formatPaise(summary.aiRevenueInPaise)} of{" "}
-              {formatPaise(summary.totalRevenueInPaise)} was bought by an AI agent with no
-              human clicks.
-            </p>
-          </div>
-        ) : null}
       </section>
 
       {summary.pendingOrderCount > 0 || summary.failedOrderCount > 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">
+        <p className="mt-4 text-meta text-muted-foreground">
           Not counted above: {summary.pendingOrderCount} awaiting payment,{" "}
-          {summary.failedOrderCount} failed. Only orders confirmed by a verified webhook
-          count as revenue.
+          {summary.failedOrderCount} failed. Only orders confirmed by a verified
+          webhook count as revenue.
         </p>
       ) : null}
 
@@ -95,56 +45,74 @@ export default async function MerchantOverviewPage() {
           buyers actually read to find the shop. */}
       <Link
         href="/agent-catalog"
-        className="mt-6 flex items-center justify-between gap-4 rounded-xl border p-4 transition-shadow hover:shadow-md"
+        className="group mt-6 flex items-center justify-between gap-4 rounded-xl border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
       >
         <div>
-          <div className="text-sm font-semibold">What AI buyers can see</div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            The machine-readable catalog autonomous agents discover your store through —
-            open, no credentials required.
+          <div className="text-heading">What AI buyers can see</div>
+          <div className="mt-1 text-meta text-muted-foreground">
+            The machine-readable catalog autonomous agents discover your store
+            through — open, no credentials required.
           </div>
         </div>
-        <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+        <span
+          aria-hidden="true"
+          className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+        >
           &rarr;
         </span>
       </Link>
 
       <section className="mt-10">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Recent orders
-          </h2>
-          <Link href="/merchant/orders" className="text-sm underline hover:no-underline">
-            View all
-          </Link>
-        </div>
+        <SectionHeading
+          action={
+            <Link
+              href="/merchant/orders"
+              className="text-meta text-primary underline-offset-2 hover:underline"
+            >
+              View all
+            </Link>
+          }
+        >
+          Recent orders
+        </SectionHeading>
 
         {recent.length === 0 ? (
-          <p className="mt-3 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No orders yet.
-          </p>
+          <EmptyState title="No orders yet." />
         ) : (
-          <div className="mt-3 overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left">
+          <div className="mt-3 overflow-x-auto rounded-xl border bg-card">
+            <table className="w-full text-meta">
+              <thead className="border-b bg-muted/40 text-left">
                 <tr>
-                  <th className="px-4 py-2.5 font-medium">Order</th>
-                  <th className="px-4 py-2.5 font-medium">Source</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Total</th>
+                  <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Order
+                  </th>
+                  <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Source
+                  </th>
+                  <th className="px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Status
+                  </th>
+                  <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Total
+                  </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y">
                 {recent.map((o) => (
-                  <tr key={o.id} className="border-t">
-                    <td className="px-4 py-2.5 font-mono text-xs">{o.id.slice(0, 12)}…</td>
-                    <td className="px-4 py-2.5">
+                  <tr
+                    key={o.id}
+                    className="transition-colors hover:bg-muted/30"
+                  >
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {o.id.slice(0, 12)}…
+                    </td>
+                    <td className="px-4 py-3">
                       <SourceBadge source={o.source} />
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-3">
                       <StatusText status={o.status} />
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">
+                    <td className="px-4 py-3 text-right font-medium tabular-nums">
                       {formatPaise(o.totalInPaise)}
                     </td>
                   </tr>
@@ -154,65 +122,6 @@ export default async function MerchantOverviewPage() {
           </div>
         )}
       </section>
-    </main>
+    </PageIn>
   );
-}
-
-function Stat({
-  label,
-  value,
-  sub,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-lg border p-4 ${
-        highlight ? "border-emerald-600/40 bg-emerald-50/60 dark:bg-emerald-950/20" : ""
-      }`}
-    >
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-      <div
-        className={`mt-1.5 text-2xl font-bold tabular-nums ${
-          highlight ? "text-emerald-700 dark:text-emerald-400" : ""
-        }`}
-      >
-        {value}
-      </div>
-      <div className="mt-1 text-xs text-muted-foreground">{sub}</div>
-    </div>
-  );
-}
-
-export function SourceBadge({ source }: { source: string }) {
-  const isAi = source === "ai_buyer";
-  return (
-    <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-        isAi
-          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-          : "bg-muted text-muted-foreground"
-      }`}
-    >
-      {isAi ? "AI buyer" : "Human"}
-    </span>
-  );
-}
-
-export function StatusText({ status }: { status: string }) {
-  const tone =
-    status === "paid"
-      ? "font-medium text-emerald-600"
-      : status === "failed"
-        ? "font-medium text-red-600"
-        : status === "cancelled"
-          ? "text-muted-foreground line-through"
-          : "text-muted-foreground";
-  return <span className={tone}>{status}</span>;
 }

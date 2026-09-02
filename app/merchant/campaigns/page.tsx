@@ -1,5 +1,6 @@
 import { guardMerchantPage } from "@/auth/merchant-guard";
 import { listCampaigns, getCampaignOutcome } from "@/db/queries/campaigns";
+import { PageIn } from "@/components/motion";
 import { CampaignBoard, type CampaignView } from "./campaign-board";
 
 export const dynamic = "force-dynamic";
@@ -37,13 +38,13 @@ export default async function CampaignsPage() {
   }));
 
   return (
-    <main className="py-8">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+    <PageIn className="py-8">
+      <h2 className="text-eyebrow uppercase text-muted-foreground">
         Campaigns
       </h2>
-      <div className="mt-4">
+      <div className="mt-5">
         <CampaignBoard campaigns={view} />
       </div>
-    </main>
+    </PageIn>
   );
 }

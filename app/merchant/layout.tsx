@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { guardMerchantPage } from "@/auth/merchant-guard";
+import { NavTabs } from "./nav-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -21,22 +21,27 @@ export default async function MerchantLayout({
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
-      <header className="border-b pb-5">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Urban Store · Merchant</h1>
-          <span className="text-sm text-muted-foreground">{session.email}</span>
-        </div>
-        <nav className="mt-4 flex gap-1" aria-label="Merchant sections">
-          {TABS.map((t) => (
-            <Link
-              key={t.href}
-              href={t.href}
-              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      <header className="border-b">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+          <div>
+            <div className="text-eyebrow uppercase text-primary">
+              Merchant console
+            </div>
+            <h1 className="mt-1.5 text-title">Urban Store</h1>
+          </div>
+          <div className="flex items-center gap-2.5 rounded-full border bg-card py-1.5 pl-1.5 pr-3.5">
+            <span
+              aria-hidden="true"
+              className="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
             >
-              {t.label}
-            </Link>
-          ))}
-        </nav>
+              {session.email.slice(0, 1).toUpperCase()}
+            </span>
+            <span className="text-meta text-muted-foreground">
+              {session.email}
+            </span>
+          </div>
+        </div>
+        <NavTabs tabs={TABS} />
       </header>
       {children}
     </div>

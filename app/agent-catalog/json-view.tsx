@@ -8,7 +8,10 @@
  * as part of the product rather than an embedded IDE.
  */
 
-type Token = { text: string; kind: "key" | "string" | "number" | "literal" | "punct" };
+type Token = {
+  text: string;
+  kind: "key" | "string" | "number" | "literal" | "punct";
+};
 
 const CLASS: Record<Token["kind"], string> = {
   key: "text-indigo-700 dark:text-indigo-300",

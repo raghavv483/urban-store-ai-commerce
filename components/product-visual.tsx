@@ -1,113 +1,220 @@
 /**
  * Product imagery without photography.
  *
- * There are no real product photos for this store, and a blank grey box reads as
- * an unfinished page. Each category gets a distinct hue and a line-drawn
- * silhouette of the product type, so cards are identifiable at a glance and the
- * grid reads as designed rather than as missing assets.
+ * The first pass was hairline outlines on a flat tint, which read as clip-art.
+ * This version treats each product as a small isometric-ish render: filled
+ * bodies with a lighter face and a darker edge, sitting on a soft ground shadow
+ * over a two-stop wash. Same idea, but the shapes now have mass, which is the
+ * difference between "placeholder" and "illustration".
  *
- * Drawn as inline SVG on a tinted ground: no network request, no layout shift,
- * and it inherits the theme through `currentColor`.
+ * Still inline SVG — no network request, no layout shift, and every colour is a
+ * `currentColor` opacity so one definition serves both themes.
  */
 
-type Category = "Laptops" | "Monitors" | "Accessories" | "Audio";
-
-const CATEGORY_STYLE: Record<string, { from: string; to: string; ink: string }> = {
+const CATEGORY_TINT: Record<string, { wash: string; ink: string }> = {
   Laptops: {
-    from: "from-indigo-100 dark:from-indigo-950/50",
-    to: "to-indigo-50/40 dark:to-indigo-900/20",
-    ink: "text-indigo-700/70 dark:text-indigo-300/60",
+    wash: "from-violet-100 via-violet-50 to-transparent dark:from-violet-950/60 dark:via-violet-900/20",
+    ink: "text-violet-900 dark:text-violet-200",
   },
   Monitors: {
-    from: "from-sky-100 dark:from-sky-950/50",
-    to: "to-sky-50/40 dark:to-sky-900/20",
-    ink: "text-sky-700/70 dark:text-sky-300/60",
+    wash: "from-sky-100 via-sky-50 to-transparent dark:from-sky-950/60 dark:via-sky-900/20",
+    ink: "text-sky-900 dark:text-sky-200",
   },
   Accessories: {
-    from: "from-amber-100 dark:from-amber-950/50",
-    to: "to-amber-50/40 dark:to-amber-900/20",
-    ink: "text-amber-800/70 dark:text-amber-300/60",
+    wash: "from-amber-100 via-amber-50 to-transparent dark:from-amber-950/60 dark:via-amber-900/20",
+    ink: "text-amber-900 dark:text-amber-200",
   },
   Audio: {
-    from: "from-rose-100 dark:from-rose-950/50",
-    to: "to-rose-50/40 dark:to-rose-900/20",
-    ink: "text-rose-700/70 dark:text-rose-300/60",
+    wash: "from-rose-100 via-rose-50 to-transparent dark:from-rose-950/60 dark:via-rose-900/20",
+    ink: "text-rose-900 dark:text-rose-200",
   },
 };
 
 const FALLBACK = {
-  from: "from-muted",
-  to: "to-muted/40",
+  wash: "from-muted via-muted/50 to-transparent",
   ink: "text-muted-foreground",
 };
 
-/** Slug-specific shapes where they differ meaningfully inside a category. */
-function Silhouette({ category, slug }: { category: string; slug: string }) {
-  const common = {
-    fill: "none",
+/** Opacity ramp: body, lit face, edge. Keeps every shape on one visual system. */
+const BODY = 0.16;
+const FACE = 0.09;
+const EDGE = 0.42;
+
+/** Soft contact shadow, shared by every shape. Hoisted so it is not redefined
+ *  on each render. */
+function Ground() {
+  return (
+    <ellipse
+      cx="40"
+      cy="47"
+      rx="24"
+      ry="2.4"
+      fill="currentColor"
+      fillOpacity="0.07"
+    />
+  );
+}
+
+function Shape({ category, slug }: { category: string; slug: string }) {
+  const stroke = {
     stroke: "currentColor",
-    strokeWidth: 1.25,
-    strokeLinecap: "round" as const,
+    strokeOpacity: EDGE,
+    strokeWidth: 0.9,
     strokeLinejoin: "round" as const,
     vectorEffect: "non-scaling-stroke" as const,
   };
+  const body = { fill: "currentColor", fillOpacity: BODY };
+  const face = { fill: "currentColor", fillOpacity: FACE };
 
   if (slug === "usb-c-hub") {
     return (
-      <svg viewBox="0 0 64 40" className="h-16 w-24" aria-hidden="true">
-        <rect x="14" y="14" width="36" height="12" rx="3" {...common} />
-        <path d="M14 20H6M50 17h6M50 23h6M32 14V8" {...common} />
-        <rect x="29" y="4" width="6" height="4" rx="1" {...common} />
-      </svg>
-    );
-  }
-  if (slug === "laptop-sleeve-14") {
-    return (
-      <svg viewBox="0 0 64 40" className="h-16 w-24" aria-hidden="true">
-        <rect x="16" y="8" width="32" height="26" rx="4" {...common} />
-        <path d="M16 14h32M24 8v-2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" {...common} />
-      </svg>
-    );
-  }
-  if (slug === "wireless-mouse") {
-    return (
-      <svg viewBox="0 0 64 40" className="h-16 w-24" aria-hidden="true">
-        <rect x="24" y="6" width="16" height="28" rx="8" {...common} />
-        <path d="M32 6v9" {...common} />
-      </svg>
+      <>
+        <Ground />
+        <rect
+          x="24"
+          y="24"
+          width="32"
+          height="11"
+          rx="3"
+          {...body}
+          {...stroke}
+        />
+        <rect x="24" y="24" width="32" height="4" rx="2" {...face} />
+        <path d="M24 29.5H12M56 27h9M56 32h9" {...stroke} fill="none" />
+        <rect
+          x="36"
+          y="14"
+          width="8"
+          height="4.5"
+          rx="1.6"
+          {...body}
+          {...stroke}
+        />
+        <path d="M40 18.5V24" {...stroke} fill="none" />
+      </>
     );
   }
 
-  switch (category as Category) {
+  if (slug === "laptop-sleeve-14") {
+    return (
+      <>
+        <Ground />
+        <rect
+          x="26"
+          y="13"
+          width="28"
+          height="31"
+          rx="4.5"
+          {...body}
+          {...stroke}
+        />
+        <path d="M26 21h28" {...stroke} fill="none" />
+        <rect x="26" y="13" width="28" height="8" rx="4.5" {...face} />
+        <path
+          d="M34 13v-2.5a2.5 2.5 0 0 1 2.5-2.5h7A2.5 2.5 0 0 1 46 10.5V13"
+          {...stroke}
+          fill="none"
+        />
+      </>
+    );
+  }
+
+  if (slug === "wireless-mouse") {
+    return (
+      <>
+        <Ground />
+        <rect
+          x="32"
+          y="12"
+          width="16"
+          height="32"
+          rx="8"
+          {...body}
+          {...stroke}
+        />
+        <path d="M32 24a8 8 0 0 1 16 0" {...face} />
+        <path d="M40 12v11" {...stroke} fill="none" />
+      </>
+    );
+  }
+
+  switch (category) {
     case "Laptops":
       return (
-        <svg viewBox="0 0 64 40" className="h-16 w-24" aria-hidden="true">
-          <rect x="14" y="8" width="36" height="22" rx="2" {...common} />
-          <path d="M8 33h48l-3-3H11z" {...common} />
-        </svg>
+        <>
+          <Ground />
+          {/* Screen, then the keyboard deck in perspective. */}
+          <rect
+            x="22"
+            y="10"
+            width="36"
+            height="24"
+            rx="2.5"
+            {...body}
+            {...stroke}
+          />
+          <rect x="25" y="13" width="30" height="18" rx="1.5" {...face} />
+          <path d="M14 44h52l-6-8H20z" {...body} {...stroke} />
+          <path d="M34 40h12" {...stroke} fill="none" />
+        </>
       );
     case "Monitors":
       return (
-        <svg viewBox="0 0 64 40" className="h-16 w-24" aria-hidden="true">
-          <rect x="8" y="5" width="48" height="26" rx="2" {...common} />
-          <path d="M32 31v5M24 36h16" {...common} />
-        </svg>
+        <>
+          <Ground />
+          <rect
+            x="12"
+            y="8"
+            width="56"
+            height="30"
+            rx="2.5"
+            {...body}
+            {...stroke}
+          />
+          <rect x="15" y="11" width="50" height="24" rx="1.5" {...face} />
+          <path d="M40 38v5" {...stroke} fill="none" />
+          <path d="M30 45h20" {...body} {...stroke} />
+        </>
       );
     case "Audio":
       return (
-        <svg viewBox="0 0 64 40" className="h-16 w-24" aria-hidden="true">
-          <path d="M16 26v-6a16 16 0 0 1 32 0v6" {...common} />
-          <rect x="10" y="24" width="8" height="12" rx="3" {...common} />
-          <rect x="46" y="24" width="8" height="12" rx="3" {...common} />
-        </svg>
+        <>
+          <Ground />
+          <path d="M20 30v-4a20 20 0 0 1 40 0v4" {...stroke} fill="none" />
+          <rect
+            x="14"
+            y="27"
+            width="11"
+            height="17"
+            rx="5"
+            {...body}
+            {...stroke}
+          />
+          <rect
+            x="55"
+            y="27"
+            width="11"
+            height="17"
+            rx="5"
+            {...body}
+            {...stroke}
+          />
+          <rect x="16.5" y="30" width="6" height="11" rx="3" {...face} />
+        </>
       );
     default:
-      // Accessories fall back to a keyboard.
+      // Keyboard, for the remaining accessories.
       return (
-        <svg viewBox="0 0 64 40" className="h-16 w-24" aria-hidden="true">
-          <rect x="8" y="12" width="48" height="20" rx="3" {...common} />
-          <path d="M15 19h2M22 19h2M29 19h2M36 19h2M43 19h2M22 26h20" {...common} />
-        </svg>
+        <>
+          <Ground />
+          <path d="M14 18h52l4 22H10z" {...body} {...stroke} />
+          <path d="M18 22h44l2 6H16z" {...face} />
+          <path
+            d="M20 32h4M27 32h4M34 32h4M41 32h4M48 32h4M28 36h24"
+            {...stroke}
+            fill="none"
+          />
+        </>
       );
   }
 }
@@ -121,15 +228,19 @@ export function ProductVisual({
   slug: string;
   className?: string;
 }) {
-  const style = CATEGORY_STYLE[category] ?? FALLBACK;
+  const tint = CATEGORY_TINT[category] ?? FALLBACK;
 
   return (
     <div
-      className={`flex items-center justify-center bg-gradient-to-br ${style.from} ${style.to} ${className}`}
+      className={`relative flex items-center justify-center overflow-hidden bg-gradient-to-b ${tint.wash} ${className}`}
     >
-      <div className={style.ink}>
-        <Silhouette category={category} slug={slug} />
-      </div>
+      <svg
+        viewBox="0 0 80 52"
+        className={`h-full w-full max-h-[78%] max-w-[78%] ${tint.ink}`}
+        aria-hidden="true"
+      >
+        <Shape category={category} slug={slug} />
+      </svg>
     </div>
   );
 }

@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ProductCard } from "./product-card";
 import type { ProductListItem } from "@/types/product";
+
+// The card renders <AddToCart>, which calls useRouter() to re-read the server
+// cart after a successful add. There is no app router mounted in a bare render,
+// so stub it — these tests are about what the card displays, not about routing.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
+}));
 
 const product: ProductListItem = {
   id: "p1",

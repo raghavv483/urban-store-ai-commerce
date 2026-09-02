@@ -49,24 +49,24 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.995 0.002 285);
+  --foreground: oklch(0.17 0.012 285);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.17 0.012 285);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.17 0.012 285);
+  --primary: oklch(0.42 0.155 285);
+  --primary-foreground: oklch(0.99 0.003 285);
+  --secondary: oklch(0.965 0.005 285);
+  --secondary-foreground: oklch(0.26 0.02 285);
+  --muted: oklch(0.965 0.005 285);
+  --muted-foreground: oklch(0.52 0.018 285);
+  --accent: oklch(0.955 0.012 285);
+  --accent-foreground: oklch(0.32 0.06 285);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.912 0.006 285);
+  --input: oklch(0.912 0.006 285);
+  --ring: oklch(0.42 0.155 285);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -84,24 +84,24 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.155 0.014 285);
+  --foreground: oklch(0.965 0.004 285);
+  --card: oklch(0.198 0.016 285);
+  --card-foreground: oklch(0.965 0.004 285);
+  --popover: oklch(0.198 0.016 285);
+  --popover-foreground: oklch(0.965 0.004 285);
+  --primary: oklch(0.75 0.14 285);
+  --primary-foreground: oklch(0.17 0.02 285);
+  --secondary: oklch(0.265 0.018 285);
+  --secondary-foreground: oklch(0.965 0.004 285);
+  --muted: oklch(0.255 0.016 285);
+  --muted-foreground: oklch(0.705 0.015 285);
+  --accent: oklch(0.29 0.03 285);
+  --accent-foreground: oklch(0.93 0.02 285);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.75 0.14 285);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -126,5 +126,100 @@
   }
   html {
     @apply font-sans;
+  }
+}
+/* ---------------------------------------------------------------------------
+   Type scale and rhythm.
+
+   The default look was every heading at whatever size it happened to need,
+   which reads as a wireframe. These are the only sizes any page should use, so
+   hierarchy is a choice from a fixed set rather than an ad-hoc number.
+
+   Ratio is ~1.22 — tight enough that adjacent steps stay distinguishable
+   without the display sizes running away on a dense dashboard.
+--------------------------------------------------------------------------- */
+@theme inline {
+  --text-display: 2.6rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.028em;
+  --text-display--font-weight: 700;
+
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.021em;
+  --text-title--font-weight: 700;
+
+  --text-heading: 1.15rem;
+  --text-heading--line-height: 1.3;
+  --text-heading--letter-spacing: -0.013em;
+  --text-heading--font-weight: 600;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.45;
+
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.09em;
+  --text-eyebrow--font-weight: 600;
+}
+
+@layer base {
+  /* Optical sizing and tighter tracking on large text: the default tracking is
+     tuned for body copy and looks loose at display sizes. */
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  /* Long-form paragraphs read badly beyond ~70 characters. */
+  p {
+    text-wrap: pretty;
+  }
+  /* Tabular figures wherever numbers are compared down a column. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* One elevation step, used for cards that lift on hover. Softer and more
+     diffuse than Tailwind's default shadow, which reads as a hard drop. */
+  .elevate {
+    box-shadow:
+      0 1px 2px oklch(0.17 0.012 285 / 0.04),
+      0 4px 12px oklch(0.17 0.012 285 / 0.05);
+  }
+  .elevate-lg {
+    box-shadow:
+      0 2px 4px oklch(0.17 0.012 285 / 0.05),
+      0 12px 32px oklch(0.17 0.012 285 / 0.09);
+  }
+  .dark .elevate,
+  .dark .elevate-lg {
+    box-shadow:
+      0 1px 2px oklch(0 0 0 / 0.4),
+      0 8px 24px oklch(0 0 0 / 0.3);
+  }
+
+  /* Subtle grain-free ground for hero areas — a very low-contrast wash of the
+     brand hue rather than flat white. */
+  .surface-wash {
+    background-image: radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      oklch(0.42 0.155 285 / 0.055),
+      transparent 70%
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

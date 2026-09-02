@@ -17,7 +17,12 @@ export function ProductCard({
 
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border bg-card transition-shadow duration-200 hover:shadow-lg hover:shadow-foreground/5">
-      <Link href={`/shop/${product.slug}`} className="block" tabIndex={-1} aria-hidden="true">
+      <Link
+        href={`/shop/${product.slug}`}
+        className="block"
+        tabIndex={-1}
+        aria-hidden="true"
+      >
         <ProductVisual
           category={product.category}
           slug={product.slug}
@@ -62,7 +67,11 @@ export function ProductCard({
 
         {compact ? null : (
           <div className="relative z-10 mt-4">
-            <AddToCart slug={product.slug} inStock={inStock} />
+            <AddToCart
+              slug={product.slug}
+              productName={product.name}
+              inStock={inStock}
+            />
           </div>
         )}
       </div>

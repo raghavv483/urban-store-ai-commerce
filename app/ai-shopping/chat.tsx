@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
+import { motion, AnimatePresence, EASE, pressable } from "@/components/motion";
 import type { ProductListItem } from "@/types/product";
 
 type Source = { title: string; docType: string };
@@ -34,16 +35,29 @@ export function Chat({ initialCartId }: { initialCartId: string | null }) {
     `thread-${Math.random().toString(36).slice(2)}-${Date.now()}`,
   );
   const endRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [turns]);
 
+  // Grow the composer with the message instead of scrolling a one-line box.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [input]);
+
   async function send(text: string) {
     const message = text.trim();
     if (!message || busy) return;
 
-    const userTurn: Turn = { id: crypto.randomUUID(), role: "user", text: message };
+    const userTurn: Turn = {
+      id: crypto.randomUUID(),
+      role: "user",
+      text: message,
+    };
     const pendingTurn: Turn = {
       id: crypto.randomUUID(),
       role: "assistant",
@@ -124,93 +138,149 @@ export function Chat({ initialCartId }: { initialCartId: string | null }) {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl px-6 py-8">
           {turns.length === 0 ? (
-            <div className="py-10">
-              <h1 className="text-3xl font-semibold tracking-tight">
-                What are you shopping for?
-              </h1>
-              <p className="mt-2 text-muted-foreground">
-                Ask about products, stock, returns, warranty or delivery. I answer
-                policy questions only from Urban Store&apos;s own documents.
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="py-10"
+            >
+              <div className="text-eyebrow uppercase text-primary">
+                Conversational commerce
+              </div>
+              <h1 className="mt-3 text-display">What are you shopping for?</h1>
+              <p className="mt-3 max-w-xl text-body text-muted-foreground">
+                Ask about products, stock, returns, warranty or delivery. I
+                answer policy questions only from Urban Store&apos;s own
+                documents.
               </p>
-              <div className="mt-6 grid gap-2 sm:grid-cols-2">
-                {OPENERS.map((o) => (
-                  <button
+
+              <div className="mt-8 grid gap-2.5 sm:grid-cols-2">
+                {OPENERS.map((o, i) => (
+                  <motion.button
                     key={o}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.35,
+                      ease: EASE,
+                      delay: 0.08 + i * 0.05,
+                    }}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.99 }}
                     onClick={() => send(o)}
-                    className="rounded-lg border px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
+                    className="group flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3.5 text-left text-meta transition-colors hover:border-primary/40 hover:bg-primary/[0.04]"
                   >
-                    {o}
-                  </button>
+                    <span>{o}</span>
+                    <span
+                      aria-hidden="true"
+                      className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      &rarr;
+                    </span>
+                  </motion.button>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ) : (
-            <div className="space-y-6">
-              {turns.map((turn) =>
-                turn.role === "user" ? (
-                  <div key={turn.id} className="flex justify-end">
-                    <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-foreground px-4 py-2.5 text-sm text-background">
-                      {turn.text}
-                    </div>
-                  </div>
-                ) : (
-                  <div key={turn.id} className="space-y-3">
-                    {turn.pending ? (
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <Dot delay="0ms" />
-                        <Dot delay="150ms" />
-                        <Dot delay="300ms" />
-                      </div>
-                    ) : (
-                      <p className="max-w-[85%] text-[15px] leading-relaxed">
+            <div className="space-y-7">
+              <AnimatePresence initial={false}>
+                {turns.map((turn) =>
+                  turn.role === "user" ? (
+                    <motion.div
+                      key={turn.id}
+                      layout="position"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, ease: EASE }}
+                      className="flex justify-end"
+                    >
+                      <div className="max-w-[80%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-meta text-primary-foreground">
                         {turn.text}
-                      </p>
-                    )}
-
-                    {turn.products && turn.products.length > 0 ? (
-                      <div className="grid gap-3 pt-1 sm:grid-cols-2 lg:grid-cols-3">
-                        {turn.products.map((p) => (
-                          <ProductCard key={p.slug} product={p} compact />
-                        ))}
                       </div>
-                    ) : null}
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key={turn.id}
+                      layout="position"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, ease: EASE }}
+                      className="space-y-3.5"
+                    >
+                      {turn.pending ? (
+                        <Thinking />
+                      ) : (
+                        <p className="max-w-[85%] whitespace-pre-wrap text-body">
+                          {turn.text}
+                        </p>
+                      )}
 
-                    {turn.checkoutCartId ? (
-                      <a
-                        href={`/checkout?cartId=${turn.checkoutCartId}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
-                      >
-                        Go to checkout
-                        <span aria-hidden="true">&rarr;</span>
-                      </a>
-                    ) : null}
+                      {turn.products && turn.products.length > 0 ? (
+                        <div className="grid gap-3 pt-1 sm:grid-cols-2 lg:grid-cols-3">
+                          {turn.products.map((p, i) => (
+                            <motion.div
+                              key={p.slug}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: 0.32,
+                                ease: EASE,
+                                delay: i * 0.05,
+                              }}
+                            >
+                              <ProductCard product={p} compact />
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : null}
 
-                    {turn.sources && turn.sources.length > 0 ? (
-                      <p className="text-xs text-muted-foreground">
-                        Source
-                        {turn.sources.length > 1 ? "s" : ""}:{" "}
-                        {turn.sources.map((s) => s.title).join(" · ")}
-                      </p>
-                    ) : null}
-                  </div>
-                ),
-              )}
+                      {turn.checkoutCartId ? (
+                        <motion.a
+                          {...pressable}
+                          href={`/checkout?cartId=${turn.checkoutCartId}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-meta font-medium text-primary-foreground"
+                        >
+                          Go to checkout
+                          <span aria-hidden="true">&rarr;</span>
+                        </motion.a>
+                      ) : null}
+
+                      {turn.sources && turn.sources.length > 0 ? (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          <span className="text-xs text-muted-foreground">
+                            Source{turn.sources.length > 1 ? "s" : ""}
+                          </span>
+                          {turn.sources.map((s) => (
+                            <span
+                              key={s.title}
+                              className="rounded-md border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground"
+                            >
+                              {s.title}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </motion.div>
+                  ),
+                )}
+              </AnimatePresence>
             </div>
           )}
           <div ref={endRef} />
         </div>
       </div>
 
-      <div className="border-t bg-background">
+      <div className="border-t bg-background/80 backdrop-blur">
         <div className="mx-auto w-full max-w-3xl px-6 py-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               send(input);
             }}
-            className="flex items-end gap-2 rounded-2xl border bg-background p-2 shadow-sm focus-within:ring-1 focus-within:ring-foreground/20"
+            className="flex items-end gap-2 rounded-2xl border bg-card p-2 transition-shadow focus-within:border-primary/40 focus-within:shadow-[0_0_0_3px] focus-within:shadow-primary/10"
           >
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -221,22 +291,26 @@ export function Chat({ initialCartId }: { initialCartId: string | null }) {
               }}
               rows={1}
               placeholder="Ask about products, returns, delivery…"
-              className="max-h-32 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] outline-none placeholder:text-muted-foreground"
+              className="max-h-40 flex-1 resize-none bg-transparent px-2 py-2 text-body outline-none placeholder:text-muted-foreground"
               disabled={busy}
             />
-            <button
+            <motion.button
+              {...pressable}
               type="submit"
               disabled={busy || !input.trim()}
-              className="rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity disabled:opacity-40"
+              className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-meta font-medium text-primary-foreground transition-opacity disabled:opacity-40"
             >
               Send
-            </button>
+            </motion.button>
           </form>
-          <p className="mt-2 text-center text-xs text-muted-foreground">
+          <p className="mt-2.5 text-center text-xs text-muted-foreground">
             {cartId ? (
               <>
                 Cart active ·{" "}
-                <Link href={`/checkout?cartId=${cartId}`} className="underline">
+                <Link
+                  href={`/checkout?cartId=${cartId}`}
+                  className="text-primary underline-offset-2 hover:underline"
+                >
                   go to checkout
                 </Link>
               </>
@@ -250,11 +324,26 @@ export function Chat({ initialCartId }: { initialCartId: string | null }) {
   );
 }
 
-function Dot({ delay }: { delay: string }) {
+/**
+ * Thinking indicator. Three dots on a shared sine, offset in time — a small
+ * signal that the request is alive, sized so it does not read as content.
+ */
+function Thinking() {
   return (
-    <span
-      className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-current"
-      style={{ animationDelay: delay }}
-    />
+    <div className="flex items-center gap-1.5" aria-label="Thinking">
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground"
+          animate={{ opacity: [0.25, 1, 0.25], y: [0, -2.5, 0] }}
+          transition={{
+            duration: 1.1,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: i * 0.15,
+          }}
+        />
+      ))}
+    </div>
   );
 }

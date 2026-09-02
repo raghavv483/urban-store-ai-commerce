@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
+import { CartToaster } from "@/components/cart-toaster";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,7 +17,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Urban Store",
-  description: "An AI-native electronics store where humans and agents can both shop.",
+  description:
+    "An AI-native electronics store where humans and agents can both shop.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -29,6 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <body className="min-h-screen bg-background text-foreground antialiased">
           <SiteHeader />
           {children}
+          <CartToaster />
         </body>
       </html>
     </ClerkProvider>
