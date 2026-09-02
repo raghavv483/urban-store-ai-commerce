@@ -297,3 +297,112 @@ export async function decideCampaign(input: {
 
   return { ...decided, delivery, deliverySummary };
 }
+
+export type CampaignOutcome = {
+  targetCartCount: number;
+  recoveredCartCount: number;
+  recoveredInPaise: number;
+  /** Share of targeted carts that converted, 0-100. */
+  recoveryRatePercent: number;
+  /** When the clock started — orders before this are not attributable. */
+  measuredSince: Date;
+};
+
+/**
+ * Did an approved campaign actually recover anything?
+ *
+ * Purely derived: this writes nothing and stores nothing. It re-reads paid orders
+ * every time, so the number on screen is the current truth rather than a snapshot
+ * that can drift.
+ *
+ * A targeted cart counts as recovered when a PAID order appears after the campaign
+ * was approved, matched either by the cart itself or by the same customer buying
+ * again. Orders before approval are never counted — a campaign cannot take credit
+ * for a sale that already happened.
+ *
+ * Attribution is capped at one order per targeted cart, so a customer who owned
+ * three abandoned carts and placed one order recovers one cart, not three.
+ */
+export async function getCampaignOutcome(
+  merchantId: string,
+  campaign: Pick<CampaignRow, "status" | "updatedAt" | "target">,
+): Promise<CampaignOutcome | null> {
+  // Only an active campaign has an outcome. A proposal has not run; a rejected
+  // one never will.
+  if (campaign.status !== "active") return null;
+
+  const cartIds = campaign.target.cartIds ?? [];
+  // `updatedAt` is the approval moment: a decided campaign cannot be decided
+  // again, so this timestamp does not move afterwards.
+  const measuredSince = campaign.updatedAt;
+
+  if (cartIds.length === 0) {
+    return {
+      targetCartCount: 0,
+      recoveredCartCount: 0,
+      recoveredInPaise: 0,
+      recoveryRatePercent: 0,
+      measuredSince,
+    };
+  }
+
+  const targetCarts = await prisma.cart.findMany({
+    where: { id: { in: cartIds }, merchantId },
+    select: { id: true, customerId: true },
+  });
+
+  const customerIds = [
+    ...new Set(targetCarts.map((c) => c.customerId).filter((id): id is string => !!id)),
+  ];
+
+  const orders = await prisma.order.findMany({
+    where: {
+      merchantId,
+      status: "paid",
+      createdAt: { gte: measuredSince },
+      OR: [
+        { cartId: { in: cartIds } },
+        ...(customerIds.length > 0 ? [{ customerId: { in: customerIds } }] : []),
+      ],
+    },
+    orderBy: { createdAt: "asc" },
+    select: { cartId: true, customerId: true, totalInPaise: true },
+  });
+
+  const recoveredCarts = new Set<string>();
+  let recoveredInPaise = 0;
+
+  // Direct cart matches first — they are unambiguous.
+  for (const order of orders) {
+    if (order.cartId && cartIds.includes(order.cartId) && !recoveredCarts.has(order.cartId)) {
+      recoveredCarts.add(order.cartId);
+      recoveredInPaise += order.totalInPaise;
+    }
+  }
+
+  // Then same-customer orders, each claiming at most one of that customer's
+  // still-unrecovered carts.
+  for (const order of orders) {
+    if (order.cartId && cartIds.includes(order.cartId)) continue; // already counted
+    if (!order.customerId) continue;
+
+    const claimable = targetCarts.find(
+      (c) => c.customerId === order.customerId && !recoveredCarts.has(c.id),
+    );
+    if (!claimable) continue;
+
+    recoveredCarts.add(claimable.id);
+    recoveredInPaise += order.totalInPaise;
+  }
+
+  return {
+    targetCartCount: cartIds.length,
+    recoveredCartCount: recoveredCarts.size,
+    recoveredInPaise,
+    recoveryRatePercent:
+      cartIds.length === 0
+        ? 0
+        : Math.round((recoveredCarts.size / cartIds.length) * 100),
+    measuredSince,
+  };
+}

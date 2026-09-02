@@ -1,5 +1,5 @@
 import { guardMerchantPage } from "@/auth/merchant-guard";
-import { listCampaigns } from "@/db/queries/campaigns";
+import { listCampaigns, getCampaignOutcome } from "@/db/queries/campaigns";
 import { CampaignBoard, type CampaignView } from "./campaign-board";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,13 @@ export default async function CampaignsPage() {
   const campaigns = await listCampaigns(session.merchantId);
 
   // Dates cross the server/client boundary as strings; the board only displays them.
-  const view: CampaignView[] = campaigns.map((c) => ({
+  // Outcomes are derived on every render rather than stored, so the number on
+  // screen is current rather than a snapshot that can drift.
+  const outcomes = await Promise.all(
+    campaigns.map((c) => getCampaignOutcome(session.merchantId, c)),
+  );
+
+  const view: CampaignView[] = campaigns.map((c, i) => ({
     id: c.id,
     name: c.name,
     status: c.status,
@@ -19,6 +25,15 @@ export default async function CampaignsPage() {
     approvedBy: c.approvedBy,
     createdAt: c.createdAt.toISOString(),
     target: c.target,
+    outcome: outcomes[i]
+      ? {
+          targetCartCount: outcomes[i]!.targetCartCount,
+          recoveredCartCount: outcomes[i]!.recoveredCartCount,
+          recoveredInPaise: outcomes[i]!.recoveredInPaise,
+          recoveryRatePercent: outcomes[i]!.recoveryRatePercent,
+          measuredSince: outcomes[i]!.measuredSince.toISOString(),
+        }
+      : null,
   }));
 
   return (

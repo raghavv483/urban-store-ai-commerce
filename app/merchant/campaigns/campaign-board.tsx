@@ -12,6 +12,14 @@ type Target = {
   topProducts: string[];
 };
 
+export type CampaignOutcomeView = {
+  targetCartCount: number;
+  recoveredCartCount: number;
+  recoveredInPaise: number;
+  recoveryRatePercent: number;
+  measuredSince: string;
+};
+
 export type CampaignView = {
   id: string;
   name: string;
@@ -21,6 +29,8 @@ export type CampaignView = {
   approvedBy: string | null;
   createdAt: string;
   target: Target;
+  /** Present only for active campaigns. Derived from paid orders, never stored. */
+  outcome: CampaignOutcomeView | null;
 };
 
 const money = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
@@ -219,6 +229,7 @@ export function CampaignBoard({ campaigns }: { campaigns: CampaignView[] }) {
                   <th className="px-4 py-2.5 font-medium">Decided by</th>
                   <th className="px-4 py-2.5 text-right font-medium">Carts</th>
                   <th className="px-4 py-2.5 text-right font-medium">Est. recovery</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Actually recovered</th>
                 </tr>
               </thead>
               <tbody>
@@ -243,6 +254,27 @@ export function CampaignBoard({ campaigns }: { campaigns: CampaignView[] }) {
                         <span className="text-muted-foreground">—</span>
                       ) : (
                         money(c.target.estimatedRecoveryInPaise)
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {c.outcome ? (
+                        <>
+                          <div
+                            className={
+                              c.outcome.recoveredCartCount > 0
+                                ? "font-medium tabular-nums text-emerald-600"
+                                : "tabular-nums text-muted-foreground"
+                            }
+                          >
+                            {money(c.outcome.recoveredInPaise)}
+                          </div>
+                          <div className="text-xs text-muted-foreground tabular-nums">
+                            {c.outcome.recoveredCartCount} of {c.outcome.targetCartCount}{" "}
+                            carts
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </td>
                   </tr>
