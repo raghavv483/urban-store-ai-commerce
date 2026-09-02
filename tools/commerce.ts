@@ -209,3 +209,97 @@ export const getPaymentStatus: AgentTool = {
     );
   },
 };
+
+/**
+ * Remove a line, or reduce its quantity (ARCHITECTURE §5's `removeFromCart`).
+ *
+ * Quantity 0 — or omitting it — removes the line entirely. Reducing below the
+ * current quantity leaves the remainder. Cart mutations are never money
+ * movement: the total is still re-derived by the spine at checkout.
+ */
+export const removeFromCart: AgentTool = {
+  name: "removeFromCart",
+  effect: "write",
+  description:
+    "Remove a product from a cart, or reduce how many of it are in the cart. Omit quantity to remove the line entirely.",
+  inputSchema: z.object({
+    cartId: z.string().min(1).max(64),
+    productSlug: z.string().min(1).max(64),
+    quantity: z
+      .number()
+      .int()
+      .min(0)
+      .max(10)
+      .optional()
+      .describe("how many to take out; omit or 0 to remove the line"),
+  }),
+  async execute(input, ctx) {
+    const { cartId, productSlug, quantity } = input as {
+      cartId: string;
+      productSlug: string;
+      quantity?: number;
+    };
+
+    const cart = await prisma.cart.findFirst({
+      where: { id: cartId, merchantId: ctx.merchantId, status: "active" },
+      select: { id: true },
+    });
+    if (!cart) return fail("CART_NOT_FOUND", `No active cart ${cartId}.`);
+
+    const product = await prisma.product.findFirst({
+      where: { merchantId: ctx.merchantId, slug: productSlug },
+      select: { id: true, name: true },
+    });
+    if (!product) return fail("NOT_FOUND", `No product with slug "${productSlug}".`);
+
+    const line = await prisma.cartItem.findUnique({
+      where: { cartId_productId: { cartId, productId: product.id } },
+      select: { quantity: true },
+    });
+    if (!line) return fail("NOT_IN_CART", `${product.name} is not in this cart.`);
+
+    const takeOut = quantity && quantity > 0 ? quantity : line.quantity;
+    const remaining = line.quantity - takeOut;
+
+    if (remaining <= 0) {
+      await prisma.cartItem.delete({
+        where: { cartId_productId: { cartId, productId: product.id } },
+      });
+    } else {
+      await prisma.cartItem.update({
+        where: { cartId_productId: { cartId, productId: product.id } },
+        data: { quantity: remaining },
+      });
+    }
+
+    // An emptied cart has no total to price, so report it rather than throwing.
+    const stillHasItems = await prisma.cartItem.count({ where: { cartId } });
+    if (stillHasItems === 0) {
+      await prisma.cart.update({ where: { id: cartId }, data: { totalInPaise: 0 } });
+      return ok(
+        { cartId, removed: productSlug, totalInPaise: 0, totalDisplay: formatPaise(0), empty: true },
+        `Removed ${product.name}. The cart is now empty.`,
+      );
+    }
+
+    const priced = await priceCart(prisma, ctx.merchantId, cartId);
+    await prisma.cart.update({
+      where: { id: cartId },
+      data: { totalInPaise: priced.totalInPaise },
+    });
+
+    return ok(
+      {
+        cartId,
+        removed: productSlug,
+        remainingQuantity: Math.max(remaining, 0),
+        totalInPaise: priced.totalInPaise,
+        totalDisplay: formatPaise(priced.totalInPaise),
+        empty: false,
+      },
+      remaining > 0
+        ? `Removed ${takeOut} × ${product.name}. Cart total ${formatPaise(priced.totalInPaise)}.`
+        : `Removed ${product.name}. Cart total ${formatPaise(priced.totalInPaise)}.`,
+    );
+  },
+};

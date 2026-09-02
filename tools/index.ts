@@ -5,7 +5,13 @@ import { prisma } from "@/lib/db";
 import { recordMoneyAction } from "@/payments/audit";
 import type { AgentTool, ToolContext, ToolResult } from "./types";
 import { searchProducts, getProduct, getInventory, getRecommendations } from "./catalog";
-import { getCart, addToCart, createRazorpayOrder, getPaymentStatus } from "./commerce";
+import {
+  getCart,
+  addToCart,
+  removeFromCart,
+  createRazorpayOrder,
+  getPaymentStatus,
+} from "./commerce";
 import { searchKnowledgeBase, getReturnPolicy } from "./knowledge";
 import { getAbandonedCarts, proposeCampaign } from "./growth";
 
@@ -19,6 +25,7 @@ export const TOOLS = {
   getRecommendations,
   getCart,
   addToCart,
+  removeFromCart,
   createRazorpayOrder,
   getPaymentStatus,
   searchKnowledgeBase,
@@ -192,6 +199,7 @@ export const routerDecisionSchema = z.object({
       "getRecommendations",
       "getCart",
       "addToCart",
+      "removeFromCart",
       "createRazorpayOrder",
       "getPaymentStatus",
       "searchKnowledgeBase",

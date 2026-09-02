@@ -4,6 +4,7 @@ import { getStorefrontMerchantId } from "@/lib/merchant";
 import { formatPaise } from "@/lib/money";
 import { priceCart, CartError } from "@/payments/cart";
 import { SpineControls } from "../test-spine/spine-controls";
+import { CartLineControls } from "./cart-line";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Checkout · Urban Store" };
@@ -51,6 +52,34 @@ export default async function CheckoutPage({
   try {
     priced = await priceCart(prisma, merchantId, cartId);
   } catch (error) {
+    // Removing the last line empties the cart, which `priceCart` rightly refuses
+    // to price. That is a normal outcome of using the Remove button, not a
+    // failure, so it gets an empty state rather than an error page.
+    if (error instanceof CartError && error.code === "CART_EMPTY") {
+      return (
+        <main className="mx-auto max-w-2xl px-6 py-16 text-center">
+          <h1 className="text-2xl font-bold tracking-tight">Your cart is empty</h1>
+          <p className="mt-2 text-muted-foreground">
+            Nothing left to check out. Add something and come back.
+          </p>
+          <div className="mt-6 flex justify-center gap-3">
+            <Link
+              href="/shop"
+              className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+            >
+              Browse the shop
+            </Link>
+            <Link
+              href="/ai-shopping"
+              className="rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              Shop with AI
+            </Link>
+          </div>
+        </main>
+      );
+    }
+
     const message =
       error instanceof CartError ? error.message : "That cart could not be priced.";
     return (
@@ -81,14 +110,22 @@ export default async function CheckoutPage({
             {priced.lines.map((l) => (
               <tr key={l.productId} className="border-b">
                 <td className="px-4 py-3">
-                  {l.name}
-                  <span className="text-muted-foreground"> × {l.quantity}</span>
+                  <div className="font-medium">{l.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatPaise(l.unitPriceInPaise)} each
+                  </div>
                   {l.unitPriceInPaise !== l.priceAtAddInPaise ? (
-                    <div className="text-xs text-amber-600">
+                    <div className="mt-1 text-xs text-amber-600">
                       Price changed since you added this (was{" "}
                       {formatPaise(l.priceAtAddInPaise)})
                     </div>
                   ) : null}
+                  <CartLineControls
+                    cartId={cartId}
+                    slug={l.slug}
+                    name={l.name}
+                    quantity={l.quantity}
+                  />
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums">
                   {formatPaise(l.unitPriceInPaise * l.quantity)}
