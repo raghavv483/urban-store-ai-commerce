@@ -19,19 +19,29 @@ declare global {
   }
 }
 
-export function SpineControls({ activeCartId }: { activeCartId: string | null }) {
+export function SpineControls({
+  activeCartId,
+}: {
+  activeCartId: string | null;
+}) {
   const [pending, startTransition] = useTransition();
   const [log, setLog] = useState<string[]>([]);
   const [checkout, setCheckout] = useState<CheckoutData | null>(null);
 
   const say = (line: string) =>
-    setLog((prev) => [`${new Date().toLocaleTimeString()}  ${line}`, ...prev].slice(0, 12));
+    setLog((prev) =>
+      [`${new Date().toLocaleTimeString()}  ${line}`, ...prev].slice(0, 12),
+    );
 
   const handle = (label: string, fn: () => Promise<ActionResult>) => {
     startTransition(async () => {
       say(`${label}…`);
       const res = await fn();
-      say(res.ok ? `✅ ${res.message}` : `❌ ${res.message}${res.code ? ` [${res.code}]` : ""}`);
+      say(
+        res.ok
+          ? `✅ ${res.message}`
+          : `❌ ${res.message}${res.code ? ` [${res.code}]` : ""}`,
+      );
       if (res.ok && res.data && "razorpayOrderId" in res.data) {
         setCheckout(res.data as unknown as CheckoutData);
       }
@@ -53,11 +63,16 @@ export function SpineControls({ activeCartId }: { activeCartId: string | null })
       name: "Urban Store",
       description: `Order ${checkout.orderId}`,
       handler: () => {
-        say("Razorpay reported success in the browser. This is NOT proof of payment —");
-        say("the order only becomes paid when the signed webhook arrives. Refresh below.");
+        say(
+          "Razorpay reported success in the browser. This is NOT proof of payment —",
+        );
+        say(
+          "the order only becomes paid when the signed webhook arrives. Refresh below.",
+        );
       },
       modal: {
-        ondismiss: () => say("Checkout dismissed. Order stays pending; nothing charged."),
+        ondismiss: () =>
+          say("Checkout dismissed. Order stays pending; nothing charged."),
       },
       theme: { color: "#111827" },
     });
@@ -66,7 +81,10 @@ export function SpineControls({ activeCartId }: { activeCartId: string | null })
 
   return (
     <div className="space-y-4">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="afterInteractive"
+      />
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -92,7 +110,9 @@ export function SpineControls({ activeCartId }: { activeCartId: string | null })
         <button
           onClick={() =>
             activeCartId
-              ? handle("Starting checkout AGAIN", () => startCheckout(activeCartId))
+              ? handle("Starting checkout AGAIN", () =>
+                  startCheckout(activeCartId),
+                )
               : say("❌ No active cart.")
           }
           disabled={pending || !activeCartId}
@@ -120,7 +140,8 @@ export function SpineControls({ activeCartId }: { activeCartId: string | null })
       {checkout ? (
         <div className="rounded-md border bg-muted/40 p-3 text-sm">
           <div className="font-medium">
-            Order {checkout.orderId} {checkout.reused ? "(reused — idempotent)" : "(new)"}
+            Order {checkout.orderId}{" "}
+            {checkout.reused ? "(reused — idempotent)" : "(new)"}
           </div>
           <div className="text-muted-foreground">
             Razorpay order {checkout.razorpayOrderId} · ₹

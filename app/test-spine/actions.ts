@@ -5,8 +5,16 @@ import { prisma } from "@/lib/db";
 import { getStorefrontMerchantId } from "@/lib/merchant";
 import { getSessionContext } from "@/auth/session";
 import { createCheckout, CheckoutError } from "@/payments/checkout";
+import { isInternalToolingEnabled } from "@/lib/internal-tools";
 
 const TEST_SESSION_ID = "spine-test-cart";
+
+/** Server actions stay callable once compiled, so each one re-checks the gate. */
+const DISABLED = {
+  ok: false as const,
+  message: "Internal test tooling is disabled.",
+  code: "DISABLED",
+};
 
 export type ActionResult =
   | { ok: true; message: string; data?: Record<string, unknown> }
@@ -17,6 +25,7 @@ export type ActionResult =
  * Any previous test cart is closed out first so each run starts clean.
  */
 export async function createTestCart(): Promise<ActionResult> {
+  if (!isInternalToolingEnabled()) return DISABLED;
   try {
     const merchantId = await getStorefrontMerchantId();
     const session = await getSessionContext();
@@ -27,12 +36,19 @@ export async function createTestCart(): Promise<ActionResult> {
     });
 
     const products = await prisma.product.findMany({
-      where: { merchantId, slug: { in: ["thinkpad-x", "usb-c-hub"] }, active: true },
+      where: {
+        merchantId,
+        slug: { in: ["thinkpad-x", "usb-c-hub"] },
+        active: true,
+      },
       select: { id: true, slug: true, priceInPaise: true },
     });
 
     if (products.length !== 2) {
-      return { ok: false, message: "Seed products missing. Run `npm run db:seed`." };
+      return {
+        ok: false,
+        message: "Seed products missing. Run `npm run db:seed`.",
+      };
     }
 
     const cart = await prisma.cart.create({
@@ -54,7 +70,11 @@ export async function createTestCart(): Promise<ActionResult> {
     });
 
     revalidatePath("/test-spine");
-    return { ok: true, message: `Cart ${cart.id} created with 2 items.`, data: { cartId: cart.id } };
+    return {
+      ok: true,
+      message: `Cart ${cart.id} created with 2 items.`,
+      data: { cartId: cart.id },
+    };
   } catch (error) {
     return { ok: false, message: describe(error) };
   }
@@ -65,6 +85,7 @@ export async function createTestCart(): Promise<ActionResult> {
  * Note there is no amount parameter — the total is derived from the DB cart.
  */
 export async function startCheckout(cartId: string): Promise<ActionResult> {
+  if (!isInternalToolingEnabled()) return DISABLED;
   try {
     const merchantId = await getStorefrontMerchantId();
     const session = await getSessionContext();
@@ -95,12 +116,18 @@ export async function startCheckout(cartId: string): Promise<ActionResult> {
 
 /** Read-only snapshot for the test page. */
 export async function getSpineState() {
+  if (!isInternalToolingEnabled()) {
+    return { cart: null, orders: [], products: [], runs: [] };
+  }
+
   const merchantId = await getStorefrontMerchantId();
 
   const [cart, orders, products, runs] = await Promise.all([
     prisma.cart.findFirst({
       where: { merchantId, sessionId: TEST_SESSION_ID, status: "active" },
-      include: { items: { include: { product: { select: { slug: true, name: true } } } } },
+      include: {
+        items: { include: { product: { select: { slug: true, name: true } } } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.order.findMany({

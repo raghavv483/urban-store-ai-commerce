@@ -42,7 +42,19 @@ const envSchema = z.object({
   AGENT_API_KEY: z.string().min(32),
   // Hard ceiling on a single agent-initiated order. The spine still derives the
   // amount from the cart; this bounds how much an agent may commit in one go.
-  AGENT_MAX_ORDER_VALUE_PAISE: z.coerce.number().int().positive().default(10_000_000),
+  AGENT_MAX_ORDER_VALUE_PAISE: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10_000_000),
+  // Exposes /test-spine and its server actions — the manual payment harness that
+  // creates synthetic carts. Off unless explicitly switched on, because those
+  // actions are reachable by anyone who can reach the app, not just by whoever
+  // can see the page. Development builds enable it implicitly.
+  ENABLE_TEST_SPINE: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
 });
 
 export type Env = z.infer<typeof envSchema>;

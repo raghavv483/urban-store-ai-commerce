@@ -1,4 +1,6 @@
+import { notFound } from "next/navigation";
 import { formatPaise } from "@/lib/money";
+import { isInternalToolingEnabled } from "@/lib/internal-tools";
 import { getSpineState } from "./actions";
 import { SpineControls } from "./spine-controls";
 
@@ -6,15 +8,20 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Transaction spine — manual test" };
 
 export default async function TestSpinePage() {
+  if (!isInternalToolingEnabled()) notFound();
+
   const { cart, orders, products, runs } = await getSpineState();
 
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-6 py-10">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Transaction spine — manual test</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          Transaction spine — manual test
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Day 2. No AI, no agents. Every amount below is derived server-side from the
-          database cart; nothing here accepts an amount from the browser.
+          Day 2. No AI, no agents. Every amount below is derived server-side
+          from the database cart; nothing here accepts an amount from the
+          browser.
         </p>
       </header>
 
@@ -37,8 +44,12 @@ export default async function TestSpinePage() {
               {products.map((p) => (
                 <tr key={p.slug} className="border-t">
                   <td className="px-3 py-2">{p.slug}</td>
-                  <td className="px-3 py-2 tabular-nums">{formatPaise(p.priceInPaise)}</td>
-                  <td className="px-3 py-2 tabular-nums font-medium">{p.stock}</td>
+                  <td className="px-3 py-2 tabular-nums">
+                    {formatPaise(p.priceInPaise)}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums font-medium">
+                    {p.stock}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -52,17 +63,22 @@ export default async function TestSpinePage() {
         </h2>
         {cart ? (
           <div className="rounded-md border p-3 text-sm">
-            <div className="font-mono text-xs text-muted-foreground">{cart.id}</div>
+            <div className="font-mono text-xs text-muted-foreground">
+              {cart.id}
+            </div>
             <ul className="mt-2 space-y-1">
               {cart.items.map((i) => (
                 <li key={i.id}>
-                  {i.quantity} × {i.product.name} @ {formatPaise(i.priceAtTimePaise)}
+                  {i.quantity} × {i.product.name} @{" "}
+                  {formatPaise(i.priceAtTimePaise)}
                 </li>
               ))}
             </ul>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No active cart. Click “Create test cart”.</p>
+          <p className="text-sm text-muted-foreground">
+            No active cart. Click “Create test cart”.
+          </p>
         )}
       </section>
 
@@ -86,7 +102,9 @@ export default async function TestSpinePage() {
               <tbody>
                 {orders.map((o) => (
                   <tr key={o.id} className="border-t align-top">
-                    <td className="px-3 py-2 font-mono text-xs">{o.id.slice(0, 12)}…</td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {o.id.slice(0, 12)}…
+                    </td>
                     <td className="px-3 py-2">
                       <span
                         className={
@@ -100,12 +118,17 @@ export default async function TestSpinePage() {
                         {o.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2 tabular-nums">{formatPaise(o.totalInPaise)}</td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {formatPaise(o.totalInPaise)}
+                    </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">
                       {o.payments.length === 0
                         ? "—"
                         : o.payments
-                            .map((p) => `${p.status}${p.errorCode ? ` (${p.errorCode})` : ""}`)
+                            .map(
+                              (p) =>
+                                `${p.status}${p.errorCode ? ` (${p.errorCode})` : ""}`,
+                            )
                             .join(", ")}
                     </td>
                   </tr>
@@ -138,7 +161,9 @@ export default async function TestSpinePage() {
                     {r.status}
                   </span>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">{r.trigger}</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {r.trigger}
+                </div>
                 <div className="mt-1">{r.outputSummary}</div>
                 <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                   {r.actions.map((a) => (
