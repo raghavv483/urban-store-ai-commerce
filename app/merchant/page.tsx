@@ -91,6 +91,24 @@ export default async function MerchantOverviewPage() {
         </p>
       ) : null}
 
+      {/* Sits directly under the AI-attributed revenue story: this is what those
+          buyers actually read to find the shop. */}
+      <Link
+        href="/agent-catalog"
+        className="mt-6 flex items-center justify-between gap-4 rounded-xl border p-4 transition-shadow hover:shadow-md"
+      >
+        <div>
+          <div className="text-sm font-semibold">What AI buyers can see</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            The machine-readable catalog autonomous agents discover your store through —
+            open, no credentials required.
+          </div>
+        </div>
+        <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+          &rarr;
+        </span>
+      </Link>
+
       <section className="mt-10">
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

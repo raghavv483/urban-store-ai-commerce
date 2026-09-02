@@ -41,6 +41,16 @@ export async function SiteHeader() {
             <span className="sm:hidden">AI</span>
           </Link>
 
+          {/* Small, secondary: this is a demo-discoverability link, not a
+              shopping destination. Hidden on narrow screens where the nav is
+              already tight. */}
+          <Link
+            href="/agent-catalog"
+            className="hidden rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:block"
+          >
+            For AI agents
+          </Link>
+
           {cart && cart.itemCount > 0 ? (
             <Link
               href={`/checkout?cartId=${cart.cartId}`}
