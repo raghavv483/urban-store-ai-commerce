@@ -51,6 +51,17 @@ const envSchema = z.object({
   // creates synthetic carts. Off unless explicitly switched on, because those
   // actions are reachable by anyone who can reach the app, not just by whoever
   // can see the page. Development builds enable it implicitly.
+  // How long a cart with a declined payment must sit before the growth agent may
+  // target it for recovery. It stays `active` the whole time — the buyer can
+  // still retry — this only governs when it becomes campaign-eligible.
+  //
+  // 30 minutes is the production default: long enough that a shopper reaching
+  // for a second card is not emailed mid-retry. Lower it only for a demo.
+  FAILED_CART_ELIGIBLE_AFTER_MS: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .default(1_800_000),
   ENABLE_TEST_SPINE: z
     .enum(["true", "false"])
     .optional()

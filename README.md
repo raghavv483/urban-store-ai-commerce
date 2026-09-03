@@ -19,6 +19,18 @@ npm run dev
 The Postgres database needs the `vector` extension:
 `CREATE EXTENSION IF NOT EXISTS vector;`
 
+## ⚠️ Demo-tuned settings to revert
+
+Two values in `.env.local` are set for live demo recording, not for production.
+Restore both before treating this as production-correct:
+
+| Variable | Demo value | Production value | Why it matters |
+| --- | --- | --- | --- |
+| `FAILED_CART_ELIGIBLE_AFTER_MS` | `10000` (10s) | `1800000` (30 min) | How long a declined-payment cart waits before the growth agent may target it. At 10s a shopper reaching for a second card gets a "you left something behind" email mid-retry. |
+| `ENABLE_TEST_SPINE` | `true` | unset / `false` | Exposes `/test-spine`, the manual payment harness. Its server actions create carts and Razorpay orders and are reachable by anyone who can reach the app. |
+
+`.env.example` already carries the production values for both.
+
 Set `MERCHANT_ADMIN_EMAIL` to the address you sign up with — that account
 becomes the merchant admin on first sign-in.
 
