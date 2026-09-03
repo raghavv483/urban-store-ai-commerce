@@ -66,6 +66,150 @@ function Shape({ category, slug }: { category: string; slug: string }) {
   const body = { fill: "currentColor", fillOpacity: BODY };
   const face = { fill: "currentColor", fillOpacity: FACE };
 
+  if (slug === "laptop-stand-alu") {
+    return (
+      <>
+        <Ground />
+        {/* Two legs meeting under a raised platform, seen slightly from the side. */}
+        <path d="M20 44l14-24h12l-14 24z" {...body} {...stroke} />
+        <path d="M60 44L46 20H34l14 24z" {...body} {...stroke} />
+        <path d="M30 21h20l3-5H27z" {...face} {...stroke} />
+      </>
+    );
+  }
+
+  if (slug === "docking-station") {
+    return (
+      <>
+        <Ground />
+        <rect
+          x="20"
+          y="20"
+          width="40"
+          height="18"
+          rx="3"
+          {...body}
+          {...stroke}
+        />
+        <rect x="20" y="20" width="40" height="6" rx="3" {...face} />
+        <path d="M25 31h5M33 31h5M41 31h5M49 31h6" {...stroke} fill="none" />
+        {/* The single cable that replaces all the others. */}
+        <path d="M60 29h8a4 4 0 0 1 4 4v6" {...stroke} fill="none" />
+      </>
+    );
+  }
+
+  if (slug === "external-ssd-1tb") {
+    return (
+      <>
+        <Ground />
+        <rect
+          x="26"
+          y="18"
+          width="28"
+          height="22"
+          rx="3.5"
+          {...body}
+          {...stroke}
+        />
+        <rect x="26" y="18" width="28" height="7" rx="3.5" {...face} />
+        <path d="M32 33h16" {...stroke} fill="none" />
+        <path d="M54 29h7" {...stroke} fill="none" />
+      </>
+    );
+  }
+
+  if (slug === "cable-organizer") {
+    return (
+      <>
+        <Ground />
+        <path d="M18 34h44v8H18z" {...body} {...stroke} />
+        <path d="M18 34h44v3H18z" {...face} />
+        {/* Cables dropping into the channel. */}
+        <path
+          d="M26 34V22M34 34V18M42 34V20M50 34V17"
+          {...stroke}
+          fill="none"
+        />
+      </>
+    );
+  }
+
+  if (slug === "webcam-1080p") {
+    return (
+      <>
+        <Ground />
+        <rect
+          x="26"
+          y="16"
+          width="28"
+          height="16"
+          rx="7"
+          {...body}
+          {...stroke}
+        />
+        <circle cx="40" cy="24" r="5" {...face} {...stroke} />
+        <circle
+          cx="40"
+          cy="24"
+          r="1.8"
+          fill="currentColor"
+          fillOpacity={EDGE}
+        />
+        {/* Monitor clip. */}
+        <path d="M30 32h20l3 8H27z" {...body} {...stroke} />
+      </>
+    );
+  }
+
+  if (slug === "wired-earbuds") {
+    return (
+      <>
+        <Ground />
+        <path d="M28 20a6 6 0 1 1 0 12 6 6 0 0 1 0-12z" {...body} {...stroke} />
+        <path d="M52 20a6 6 0 1 1 0 12 6 6 0 0 1 0-12z" {...body} {...stroke} />
+        <circle cx="28" cy="26" r="2.2" {...face} />
+        <circle cx="52" cy="26" r="2.2" {...face} />
+        {/* The cable, which is the whole point of these. */}
+        <path
+          d="M28 32v6a4 4 0 0 0 4 4h16a4 4 0 0 0 4-4v-6"
+          {...stroke}
+          fill="none"
+        />
+      </>
+    );
+  }
+
+  if (slug === "desk-speaker") {
+    return (
+      <>
+        <Ground />
+        <rect
+          x="22"
+          y="14"
+          width="16"
+          height="30"
+          rx="2.5"
+          {...body}
+          {...stroke}
+        />
+        <rect
+          x="42"
+          y="14"
+          width="16"
+          height="30"
+          rx="2.5"
+          {...body}
+          {...stroke}
+        />
+        <circle cx="30" cy="24" r="4.5" {...face} {...stroke} />
+        <circle cx="50" cy="24" r="4.5" {...face} {...stroke} />
+        <circle cx="30" cy="37" r="2" {...face} />
+        <circle cx="50" cy="37" r="2" {...face} />
+      </>
+    );
+  }
+
   if (slug === "usb-c-hub") {
     return (
       <>

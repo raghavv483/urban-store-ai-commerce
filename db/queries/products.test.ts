@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/db";
 import { seed } from "@/db/seed";
-import { MERCHANT_SLUG } from "@/db/seed-data";
+import { MERCHANT_SLUG, SEED_PRODUCTS } from "@/db/seed-data";
 import { listProducts, listCategories, getProductBySlug } from "./products";
 
 const OTHER_SLUG = "test-rival-store";
@@ -10,7 +10,9 @@ let otherMerchantId: string;
 
 beforeAll(async () => {
   await seed();
-  const merchant = await prisma.merchant.findUniqueOrThrow({ where: { slug: MERCHANT_SLUG } });
+  const merchant = await prisma.merchant.findUniqueOrThrow({
+    where: { slug: MERCHANT_SLUG },
+  });
   merchantId = merchant.id;
 
   const other = await prisma.merchant.upsert({
@@ -21,7 +23,9 @@ beforeAll(async () => {
   otherMerchantId = other.id;
 
   await prisma.product.upsert({
-    where: { merchantId_slug: { merchantId: otherMerchantId, slug: "thinkpad-x" } },
+    where: {
+      merchantId_slug: { merchantId: otherMerchantId, slug: "thinkpad-x" },
+    },
     update: {},
     create: {
       merchantId: otherMerchantId,
@@ -41,15 +45,20 @@ afterAll(async () => {
 });
 
 describe("listProducts", () => {
+  // Counts come from the seed rather than a literal: the point of these two is
+  // merchant isolation and category filtering, not how big the catalogue is.
   it("returns only the requested merchant's products", async () => {
     const products = await listProducts(merchantId, {});
-    expect(products).toHaveLength(9);
+    expect(products).toHaveLength(SEED_PRODUCTS.length);
     expect(products.every((p) => p.name !== "Rival ThinkPad X")).toBe(true);
   });
 
   it("filters by category", async () => {
+    const expected = SEED_PRODUCTS.filter(
+      (p) => p.category === "Laptops",
+    ).length;
     const laptops = await listProducts(merchantId, { category: "Laptops" });
-    expect(laptops).toHaveLength(3);
+    expect(laptops).toHaveLength(expected);
     expect(laptops.every((p) => p.category === "Laptops")).toBe(true);
   });
 

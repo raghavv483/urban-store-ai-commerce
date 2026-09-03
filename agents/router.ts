@@ -120,9 +120,14 @@ Rules:
   For a use case ("for programming", "for gaming", "for work") do NOT put it in
   query — use category and maxPriceInPaise instead, and get the advice from
   searchKnowledgeBase as the secondary tool.
-- Product slugs: thinkpad-x, dell-xps-13, macbook-air-m3, monitor-27-4k,
-  mechanical-keyboard, wireless-mouse, usb-c-hub, laptop-sleeve-14,
-  noise-cancel-headset.
+- Product slugs, by category:
+  Laptops: thinkpad-x, dell-xps-13, macbook-air-m3, asus-zenbook-14,
+    hp-spectre-x360, macbook-pro-14.
+  Monitors: monitor-24-fhd, monitor-27-4k, ultrawide-34.
+  Accessories: mechanical-keyboard, wireless-mouse, usb-c-hub,
+    laptop-sleeve-14, laptop-stand-alu, webcam-1080p, docking-station,
+    external-ssd-1tb, cable-organizer.
+  Audio: noise-cancel-headset, wired-earbuds, desk-speaker.
 - Categories are exactly: Laptops, Monitors, Accessories, Audio.
 - Returns, refunds, warranty, delivery, shipping, "how long do I have",
   "can I send it back" -> getReturnPolicy for returns/refunds specifically,

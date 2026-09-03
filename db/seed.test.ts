@@ -18,7 +18,7 @@ describe("seed", () => {
     expect(merchant?.name).toBe("Urban Store");
   });
 
-  it("creates all nine products with prices in paise", async () => {
+  it("creates every seed product with prices in paise", async () => {
     const merchant = await prisma.merchant.findUniqueOrThrow({ where: { slug: MERCHANT_SLUG } });
     const products = await prisma.product.findMany({ where: { merchantId: merchant.id } });
     expect(products).toHaveLength(SEED_PRODUCTS.length);
